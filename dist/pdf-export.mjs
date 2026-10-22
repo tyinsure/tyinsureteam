@@ -1,6 +1,5 @@
 import {LINE_CONTACT_TEXT,addLineContactLink} from './pdf-contact-link.mjs';
 const W=595.28,H=841.89,M=28,TABLE_BOTTOM=738,ROW=20;
-const widths=[34,99,61,110,112,123.28];
 const money=n=>Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
 export function reportPageLayouts(r){
  const pages=[];let offset=0;

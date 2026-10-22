@@ -13,3 +13,8 @@ body.has-health-rider.has-pa-rider .table-scroll table { min-width:1220px; }
 body.has-ci-rider .table-scroll table{min-width:1220px}body.has-ci-rider.has-health-rider.has-pa-rider .table-scroll table{min-width:1440px}
 @media(max-width:760px){.rider-cost .rider-cost-total{flex-wrap:wrap}}
 @media print{body.has-ci-rider .table-scroll table{min-width:0}#ci-cost{break-inside:avoid}}
+
+.daily-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.daily-choices button{font:600 15px Sarabun,sans-serif;min-height:44px;border:1px solid #e3c5d3;border-radius:9px;background:white;color:#775267;cursor:pointer}.daily-choices button.active{background:#b64070;color:white;border-color:#b64070}.daily-choices button:focus-visible{outline:3px solid #e4bccd;outline-offset:2px}
+.daily-selector .rider-benefits dl>div{margin-bottom:12px}.daily-selector .rider-benefits dd{margin-top:3px}.daily-selector details{margin-top:10px}.daily-selector summary{cursor:pointer;color:#a13362}.daily-selector details small{margin-top:8px}
+body.has-daily-rider .table-scroll table{min-width:1220px}body.has-daily-rider.has-health-rider.has-ci-rider.has-pa-rider .table-scroll table{min-width:1600px}
+@media print{body.has-daily-rider .table-scroll table{min-width:0}}

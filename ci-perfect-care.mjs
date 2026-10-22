@@ -1,5 +1,8 @@
 const round=n=>Math.round((n+Number.EPSILON)*100)/100;
 export const CI_NAME='ซีไอ เพอร์เฟค แคร์';
+// Projection rule confirmed by the user: no CI premiums from attained age85.
+export const CI_COVERAGE_END_AGE=85;
+export const CI_PROJECTION_NOTE='ซีไอคุ้มครองถึงอายุ 85 ปี รวมเบี้ยถึงอายุ 84 ปี และหยุดรวมเบี้ยซีไอตั้งแต่อายุ 85 ปี';
 export const CI_TERMS=[
  'ผลประโยชน์กรณีเสียชีวิตและโรคร้ายแรงระยะรุนแรง หักผลประโยชน์ระยะเริ่มต้นและ/หรือระยะกลางที่ได้รับแล้ว',
  'ผลประโยชน์โรคร้ายแรงระยะกลาง หักผลประโยชน์ระยะเริ่มต้นของโรคร้ายแรงเดียวกันที่ได้รับแล้ว (ถ้ามี)',
@@ -25,5 +28,5 @@ export function ciQuote(data,input,age=Number(input.age)){
 }
 export function ciSummary(ci,frequency){
  const money=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
- return ['',ci.label,ci.detail,`เบี้ย${frequency.label} ${money(ci.premium)} บาท/งวด`,`เบี้ยรวมต่อปี ${money(ci.annual)} บาท`,...ci.benefits.map(b=>`${b.label}: ${money(b.amount)} บาท (${b.pct*100}% ของทุน ณ วันเริ่มสัญญา)`),...CI_TERMS,'ตารางอัตราอายุ 66–84 ปีสำหรับต่ออายุเท่านั้น หลังอายุ 84 ปีไม่มีอัตราในภาพที่ให้ไว้'].join('\n');
+ return ['',ci.label,ci.detail,`เบี้ย${frequency.label} ${money(ci.premium)} บาท/งวด`,`เบี้ยรวมต่อปี ${money(ci.annual)} บาท`,...ci.benefits.map(b=>`${b.label}: ${money(b.amount)} บาท (${b.pct*100}% ของทุน ณ วันเริ่มสัญญา)`),...CI_TERMS,CI_PROJECTION_NOTE].join('\n');
 }

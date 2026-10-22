@@ -1,48 +1,31 @@
-# TYINSURE — สำหรับ Bigg
+# TYINSURE — Check Point 5 สำหรับ Bigg
 
-ชุดไฟล์ GitHub ฉบับล่าสุด วันที่ 22 ตุลาคม 2026 รวมซีไอ เพอร์เฟค แคร์ และการย้ายผลประโยชน์เข้าไปในกล่องทุนประกัน
-Source commit: e0fec72456b9fc60273d261185929325f945688e
+วันที่ 22 ตุลาคม 2026
+Source commit: c31a66f14462be3df1fa825eabb9fd85b9c070d7
+ก่อน Debug: Check Point 4 commit 3c82a643adfe7646ea9b6e22781464fcbd84dc1a
 
-## อัปโหลดขึ้น GitHub
+อัปโหลดไปยัง repository tyinsure/tyinsureteam ตามที่ผู้ใช้มอบหมาย
+ชุดนี้รวมสรุป PDF D Health Lite, Elite Health Plus, Care Plus ทุกแผน, CI และค่าชดเชยรายวัน
+ผ่าน 24/24 ชุดทดสอบ และตรวจการส่งออกจริง PDF 8 หน้า / Excel
+รายละเอียดการตรวจอยู่ใน docs/checkpoints/checkpoint-5.md
 
-1. แตก ZIP นี้
-2. สร้าง repository หรือเปิด repository ที่ต้องการ
-3. อัปโหลดไฟล์และโฟลเดอร์ทั้งหมดที่แตกได้ โดยคงโครงสร้างเดิม และ commit
-4. ต้องมี dist/index.html อยู่ใน repository ไม่ใช่อัปโหลด ZIP เพียงไฟล์เดียว
+## โครงสร้างและการอัปโหลด
 
-โฟลเดอร์ dist/ คือเว็บไซต์พร้อมใช้งาน โค้ดทดสอบอยู่ที่ root
-ไฟล์การผูกโปรเจกต์กับ Sites (.openai/) ถูกตัดออกจากชุดสำหรับ GitHub นี้
-ชุดนี้เป็นเวอร์ชันพัฒนาต่อจาก Check Point 2 ไม่ได้แทนที่ชุดสำรอง Check Point 2 เดิม
+- แตก ZIP และอัปโหลดไฟล์ทั้งหมดตามโครงสร้างเดิม ไม่อัปโหลด ZIP แทนไฟล์เว็บ
+- dist/ คือเว็บไซต์พร้อมใช้ ไฟล์ทดสอบอยู่ที่ root
+- repository เดิมมีไฟล์เว็บที่ root ด้วย ให้ซิงก์สำเนา root จาก dist/ ทุกไฟล์ รวม assets และ modules ใหม่ เพื่อไม่ให้เว็บ root เป็นรุ่นเก่า
+- รักษาไฟล์ของ repository ที่ไม่เกี่ยวข้อง ไม่ลบ workflow หรือเอกสารของผู้อื่น
+- ชุดนี้ตัด .openai/ ซึ่งผูกกับ Sites ออก และไม่รวม .git หรือข้อมูลรับรอง
+- รัน node run-tests.mjs จากโฟลเดอร์ที่แตกแล้วก่อนอัปโหลด
+- ตรวจไฟล์ dist/ และสำเนาเว็บ root ให้ตรงกับชุดนี้หลังอัปโหลด
+- ไม่สั่งเผยแพร่ GitHub Pages เพิ่มเอง การส่งครั้งนี้มอบหมายให้อัปโหลด GitHub
 
-## เผยแพร่ด้วย GitHub Pages
+## เปิดใช้งาน
 
-1. เปิด Settings > Pages ใน repository แล้วเลือก Source เป็น GitHub Actions
-2. เปิด Actions > Deploy TYINSURE to GitHub Pages > Run workflow
-3. เลือก branch ที่อัปโหลดไฟล์ไว้ แล้วกด Run workflow
-4. รอ workflow สำเร็จ และเปิด URL ใน environment github-pages
+ใช้ static HTTP server ให้ document root เป็น dist/ เว็บใช้ ES modules และ fetch จึงควรเปิดผ่าน HTTP
+Netlify: Publish directory = dist, ไม่ต้อง build
+GitHub Pages: มี workflow สั่งรันเองใน .github/workflows/pages.yml เช่นชุดเดิม
 
-workflow นี้เริ่มเมื่อกดสั่งรันเอง เพื่อให้เลือกเวลาที่เผยแพร่ได้
-การใช้งาน Pages ขึ้นกับสิทธิ์และแพ็กเกจของ repository
-
-## เผยแพร่ด้วย Netlify
-
-เชื่อม repository กับ Netlify โดยไม่มี build command และตั้ง Publish directory เป็น dist
-มี netlify.toml กำหนดค่าไว้ให้แล้ว
-ถ้าอัปโหลดด้วย Netlify Drop ให้ลากเฉพาะโฟลเดอร์ dist
-
-## พัฒนาต่อ
-
-ใช้ Node.js รุ่นปัจจุบันที่รองรับ ES modules แล้วรัน:
-
-    node run-tests.mjs
-
-หลังเพิ่มซีไอตรวจผ่าน 20 ชุดทดสอบ และหลังย้ายกล่องตรวจผ่าน CI UI และ local references เพิ่มเติม
-เปิดดูผ่าน static HTTP server แทนการดับเบิลคลิกไฟล์ HTML เพราะเว็บใช้ fetch และ ES modules
-
-## ข้อสังเกต
-
-- อัตราเบี้ยแผนเดิมคงเดิม และเพิ่มอัตราเบี้ยซีไอ 680 ค่า ตามภาพต้นฉบับใน docs/ci-perfect-care
-- ยังไม่มี favicon.ico จึงอาจมีคำขอไอคอนตอบกลับ 404
-- คำเตือนส่วนขยาย Firefox/MetaMask เกิดจากส่วนขยายของเบราว์เซอร์
-- ปัญหา cookie __cf_bm ที่ตรวจพบเป็นของระบบโฮสติ้ง Sites เดิม ไม่ใช่โค้ดที่ตั้ง cookie ในชุดนี้
-- การอัปโหลดชุดนี้ไม่เปลี่ยนเว็บไซต์ Sites เดิมโดยอัตโนมัติ
+การแก้รอบ Debug จำกัดเฉพาะ favicon ทุกหน้า และลบตัวแปร PDF ที่ไม่ได้ใช้ 2 จุด สูตรและอัตราเบี้ยคงเดิม
+สำรองก่อนตรวจ: TYINSURE_Check_Point_4.zip
+สำรองหลังตรวจ: TYINSURE_Check_Point_5.zip

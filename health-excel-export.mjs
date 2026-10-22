@@ -1,4 +1,5 @@
-import {CI_TERMS} from './ci-perfect-care.mjs';
+import {CI_TERMS,CI_PROJECTION_NOTE} from './ci-perfect-care.mjs';
+import {DAILY_TERMS} from './daily-compensation.mjs';
 // Layout and styles are authored with Artifact Tool in excel-template.json.
 const encoder=new TextEncoder();
 const xml=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
@@ -47,7 +48,8 @@ export function reportParts(template,r,mode){
   `สัญญาเพิ่มเติม ${r.rider.name} · กลุ่มอาชีพ ${r.rider.occupation}${r.rider.holiday?' · รวมเบี้ยเพิ่มวันหยุดนักขัตฤกษ์แล้ว':''}`,
   'ตารางเบี้ยเพิ่มเติม รวมเบี้ยทุกงวดต่อปีตามอายุและแผนที่เลือก รวมสุขภาพ Care Plus และ PA ที่เลือก (PA รวมถึงอายุ 85 ปี) อัตราต่ออายุสุขภาพใช้ตามหมายเหตุของแผน ไม่มีอัตราไม่ใช่เบี้ยฟรี',
   'เบี้ยและวงเงินเพิ่มเติม แยกจากเบี้ยสะสมและความคุ้มครองของสัญญาหลัก');
- if(r.ci)notes.push(r.ci.label+' · '+r.ci.detail+' · เบี้ย '+r.ci.premium.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/งวด',...r.ci.benefits.map(b=>b.label+' ('+b.pct*100+'%): '+b.amount.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท'),...CI_TERMS,'ซีไอ: อัตราอายุ 66–84 ปีสำหรับต่ออายุเท่านั้น หลังอายุ 84 ปีไม่มีอัตราในภาพที่ให้ไว้');
+ if(r.ci)notes.push(r.ci.label+' · '+r.ci.detail+' · เบี้ย '+r.ci.premium.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/งวด',...r.ci.benefits.map(b=>b.label+' ('+b.pct*100+'%): '+b.amount.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท'),...CI_TERMS,CI_PROJECTION_NOTE);
+ if(r.daily)notes.push(r.daily.label+' · '+r.daily.detail+' · เบี้ย '+r.daily.premium.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/งวด',...r.daily.benefits.map(b=>b.label+': '+b.amount.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/วัน'),...DAILY_TERMS);
  notes.forEach((text,i)=>{const row=end+2+i;rows.push(`<x:row r="${row}" ht="25" customHeight="1">${cell('A'+row,text,2)}</x:row>`);});
  sheet=sheet.replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/,`<x:sheetData>${rows.join('')}</x:sheetData>`);
  if(legacy){const last=withRider?'F':'E';sheet=sheet.replace('</x:mergeCells>',Array.from({length:r.schedule.length+1},(_,i)=>`<x:mergeCell ref="${last}${10+i}:${lastCol}${10+i}" />`).join('')+'</x:mergeCells>');}

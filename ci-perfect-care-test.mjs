@@ -33,8 +33,9 @@ for(const frequency of ci.frequencies)for(const paEnabled of [false,true])for(co
  assert.equal(r.combinedFirstYearPremium,Math.round((r.premium+(r.rider?.premium??0)+(r.health?.premium??0)+(r.care?.premium??0)+r.ci.premium)*100)/100);
  for(const age of [35,65,66,84,85,98,99]){
   const row=r.schedule.find(x=>x.age===age);
-  assert.equal(row.ciPremium,age===99?0:age>84?null:ciQuote(ci,i,age).premium*r.frequency.payments);
-  assert.equal(row.totalPremium===null,age>84&&age<99);
+  assert.equal(row.ciPremium,age>84?0:ciQuote(ci,i,age).premium*r.frequency.payments);
+  assert.ok(Number.isFinite(row.totalPremium));
+  if(age>=85){const without=plain.schedule.find(x=>x.age===age);assert.equal(row.totalPremium,without.totalPremium);}
  }
  const report=healthReportResult(r),xml=reportParts(template,report,'sum')['xl/worksheets/sheet1.xml'];
  assert.ok(xml.includes('ซีไอ เพอร์เฟค แคร์'));assert.ok(xml.includes('250,000.00'));assert.ok(!/undefined|NaN/.test(xml));
@@ -42,10 +43,17 @@ for(const frequency of ci.frequencies)for(const paEnabled of [false,true])for(co
  const texts=[],ctx={scale(){},fillRect(){},fillText(t){texts.push(String(t));},measureText(t){return {width:String(t).length*5}},beginPath(){},moveTo(){},lineTo(){},stroke(){}};
  layouts.forEach((p,j)=>drawPDFPage({getContext:()=>ctx},report,'sum',p,j,layouts.length,1));
  assert.ok(texts.includes('250,000.00 บาท'));assert.ok(!texts.some(t=>/undefined|NaN/.test(t)));
+ assert.ok(!texts.includes('ไม่มีอัตรา'),'valid ended CI must not blank the PDF totals');
  assert.ok(ciSummary(r.ci,r.frequency).includes('250,000.00'));assert.ok(ciSummary(r.ci,r.frequency).includes('หักผลประโยชน์'));
 }
 assert.throws(()=>validateMainRiders(quote({...input,ciEnabled:false})),/อย่างน้อย 1 แผน/);
 assert.throws(()=>validateMainRiders(quote({...input,mainPlan:'smart9999-small',amount:100000})),/ต้องเลือกแผน PA/);
 assert.throws(()=>validateMainRiders(quote({...input,mainPlan:'wholelife50000',amount:50000})),/5,000/);
 assert.doesNotThrow(()=>validateMainRiders(quote({...input,mainPlan:'wholelife50000',amount:50000,ciSum:1100000})));
+// An actual missing rate during cover must remain unknown; only ended CI becomes zero.
+const missing=structuredClone(data);missing.ci.rates[84]=null;
+const incomplete=addHealthRider(calculateLegacy(base,input),missing,input);
+assert.equal(incomplete.schedule.find(row=>row.age===84).totalPremium,null);
+assert.equal(incomplete.schedule.find(row=>row.age===85).ciPremium,0);
+assert.equal(incomplete.schedule.find(row=>row.age===85).totalPremium,0);
 console.log('PASS: 680 CI rate cases, image anchors, benefits/terms, entry vs renewal ages, invalid sums, 32 rider/payment combinations, unchanged main benefits, reports and eligibility');

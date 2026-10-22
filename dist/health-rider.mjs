@@ -1,4 +1,5 @@
-import {ciQuote,CI_NAME} from './ci-perfect-care.mjs';
+import {ciQuote,CI_NAME,CI_COVERAGE_END_AGE} from './ci-perfect-care.mjs';
+import {dailyQuote} from './daily-compensation.mjs';
 const round=n=>Math.round((n+Number.EPSILON)*100)/100;
 export const HEALTH_NAMES={dhealth:'D Health Lite',elite:'Elite Health Plus',care:'Care Plus'};
 export const HEALTH_AREAS=['เฉพาะประเทศไทย','ทวีปเอเชีย','ทั่วโลกยกเว้นสหรัฐอเมริกา','ทั่วโลก'];
@@ -31,32 +32,36 @@ export function healthQuote(data,input,age=Number(input.age)){
   premium=data.elite[input.frequency]?.[age]?.[(plan-1)*4+area]??null;
   label=HEALTH_NAMES.elite;detail=`แผน ${plan} · ${HEALTH_AREAS[area]}`;
  }else throw Error('กรุณาเลือกแผนประกันสุขภาพ');
- return {label,detail,premium,source:data.sources[input.healthProduct],renewalAge:input.healthProduct==='care'?81:91,occupation:'1–2'};
+ return {label,detail,premium,product:input.healthProduct,...(input.healthProduct==='dhealth'?{benefit:Number(input.healthBenefit)}:input.healthProduct==='elite'?{plan:Number(input.healthPlan),area:Number(input.healthArea)}:{benefit:Number(input.careBenefit),condition:input.careCondition}),source:data.sources[input.healthProduct],renewalAge:input.healthProduct==='care'?81:91,occupation:'1–2'};
 }
 export function annualTotalPremium(row,r){
  if(row.age===99)return 0;
- const values=[row.pay,...(r.rider?[row.riderPremium]:[]),...(r.health?[row.healthPremium]:[]),...(r.care?[row.carePremium]:[]),...(r.ci?[row.ciPremium]:[])];
+ const values=[row.pay,...(r.rider?[row.riderPremium]:[]),...(r.health?[row.healthPremium]:[]),...(r.daily?[row.dailyPremium]:[]),...(r.care?[row.carePremium]:[]),...(r.ci?[row.ciPremium]:[])];
  return values.some(v=>v==null)?null:round(values.reduce((sum,v)=>sum+v,0));
 }
 export function addHealthRider(result,data,input){
  const count=result.frequency.payments;
  let r=result;
  if(input.ciEnabled&&result.age>65)throw Error(`${CI_NAME}: ตารางเริ่มสัญญารองรับอายุ 0–65 ปี อายุ 66–84 ปีสำหรับต่ออายุเท่านั้น`);
- const selected=[...(input.healthProduct?[['health',input]]:[]),...(input.careEnabled?[['care',{...input,healthProduct:'care'}]]:[]),...(input.ciEnabled?[['ci',input]]:[])];
+ if(input.dailyEnabled&&result.sum<50000)throw Error('ค่าชดเชยรายวัน: ทุนประกันสัญญาหลักขั้นต่ำ 50,000 บาท');
+ const selected=[...(input.healthProduct?[['health',input]]:[]),...(input.dailyEnabled?[['daily',input]]:[]),...(input.careEnabled?[['care',{...input,healthProduct:'care'}]]:[]),...(input.ciEnabled?[['ci',input]]:[])];
  for(const [key,quoteInput] of selected){
-  const getQuote=age=>key==='ci'?ciQuote(data.ci,quoteInput,age):healthQuote(data,quoteInput,age);
+  const getQuote=age=>key==='daily'?dailyQuote(quoteInput):key==='ci'?ciQuote(data.ci,quoteInput,age):healthQuote(data,quoteInput,age);
   const quote=getQuote(result.age);if(!quote||quote.premium===null)throw Error(`ไม่มีอัตราเบี้ย ${quote?.label??CI_NAME} สำหรับอายุและตัวเลือกนี้ในเอกสาร กรุณาเปลี่ยนตัวเลือก`);
-  r={...r,[key]:{...quote,annual:round(quote.premium*count)},schedule:r.schedule.map(row=>{const q=getQuote(row.age);return {...row,[key+'Premium']:row.age===99?0:q?.premium==null?null:round(q.premium*count)};})};
+  r={...r,[key]:{...quote,annual:round(quote.premium*count)},schedule:r.schedule.map(row=>{
+   if(row.age===99||(key==='daily'&&row.age>=65)||(key==='ci'&&row.age>=CI_COVERAGE_END_AGE))return {...row,[key+'Premium']:0};
+   const q=getQuote(row.age);return {...row,[key+'Premium']:q?.premium==null?null:round(q.premium*count)};
+  })};
  }
  if(!selected.length)return {...result,schedule:result.schedule.map(row=>({...row,totalPremium:annualTotalPremium(row,result)}))};
- const premium=round(r.premium+(r.rider?.premium??0)+(r.health?.premium??0)+(r.care?.premium??0)+(r.ci?.premium??0));
+ const premium=round(r.premium+(r.rider?.premium??0)+(r.health?.premium??0)+(r.daily?.premium??0)+(r.care?.premium??0)+(r.ci?.premium??0));
  return {...r,schedule:r.schedule.map(row=>({...row,totalPremium:annualTotalPremium(row,r)})),combinedFirstYearPremium:premium,combinedFirstYearAnnual:round(premium*count)};
 }
 export function healthReportResult(r){
- const extras=[r.health,r.care,r.ci].filter(Boolean);if(!extras.length)return r;
+ const extras=[r.health,r.daily,r.care,r.ci].filter(Boolean);if(!extras.length)return r;
  const description=extras.map(x=>`${x.label} · ${x.detail}`).join(' + ');
  return {...r,reportMainLabel:r.plan.label,reportRiderLabel:[...extras.map(x=>x.label),...(r.rider?['PA '+r.rider.name]:[])].join(' + '),plan:{...r.plan,label:`${r.plan.label} + ${description}`},rider:{name:`${description}${r.rider?' + PA '+r.rider.name:''}`,occupation:r.health||r.care?'1–2':r.rider?'1':'—',premium:round(extras.reduce((n,x)=>n+x.premium,0)+(r.rider?.premium??0)),holiday:false},schedule:r.schedule.map(row=>{
-  const premiums=[...(r.health?[row.healthPremium]:[]),...(r.care?[row.carePremium]:[]),...(r.ci?[row.ciPremium]:[]),...(r.rider?[row.riderPremium]:[])];
+  const premiums=[...(r.health?[row.healthPremium]:[]),...(r.daily?[row.dailyPremium]:[]),...(r.care?[row.carePremium]:[]),...(r.ci?[row.ciPremium]:[]),...(r.rider?[row.riderPremium]:[])];
   return {...row,riderPremium:premiums.some(v=>v===null)?null:round(premiums.reduce((n,v)=>n+v,0))};
  })};
 }
@@ -64,7 +69,7 @@ export function healthReportResult(r){
 // Validate selected, successfully quoted riders; health cover alone is insufficient.
 export function validateMainRiders(result){
  if(result.plan.family==='wholelife50000'){
-  const annual=round((result.health?.annual??0)+(result.care?.annual??0)+(result.ci?.annual??0)+(result.rider?.annualPremium??0));
+  const annual=round((result.health?.annual??0)+(result.daily?.annual??0)+(result.care?.annual??0)+(result.ci?.annual??0)+(result.rider?.annualPremium??0));
   if(annual<5000)throw Error('เบี้ยสัญญาเพิ่มเติมไม่ครบ 5,000บาท กรุณาเพิ่มให้ครบ');
   return;
  }
