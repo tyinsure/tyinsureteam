@@ -1,4 +1,5 @@
 import {LINE_CONTACT_TEXT,addLineContactLink} from './pdf-contact-link.mjs';
+import {CI_TERMS} from './ci-perfect-care.mjs';
 const W=595.28,H=841.89,M=28,TABLE_BOTTOM=738,ROW=20;
 const widths=[34,99,61,110,112,123.28];
 const money=n=>Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -8,9 +9,31 @@ export function reportPageLayouts(r){
   const first=pages.length===0,top=r.rider?(first?252:118):(first?226:100),capacity=Math.floor((TABLE_BOTTOM-top-36)/ROW);
   const rows=r.schedule.slice(offset,offset+capacity);pages.push({first,top,rows});offset+=rows.length;
  }
+ if(r.ci)pages.push({kind:'ci',first:false,top:100,rows:[]});
  return pages;
 }
+function drawCIBenefits(canvas,r,index,total,scale){
+ canvas.width=Math.ceil(W*scale);canvas.height=Math.ceil(H*scale);
+ const c=canvas.getContext('2d');c.scale(scale,scale);c.fillStyle='#FFFFFF';c.fillRect(0,0,W,H);
+ const text=(value,x,y,size=10,color='#36283b',width=W-2*M)=>{c.font=`${size}px Sarabun`;c.fillStyle=color;c.textAlign='left';c.fillText(String(value),x,y,width);};
+ text('TYINSURE',M,37,18,'#A13362');text('ซีไอ เพอร์เฟค แคร์ · ผลประโยชน์ตามทุน ณ วันเริ่มสัญญา',M,75,14,'#A13362');
+ text(`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ${r.ci.detail}`,M,105,11);
+ text(`เบี้ย${r.frequency.label} ${money(r.ci.premium)} บาท/งวด · รวมต่อปี ${money(r.ci.annual)} บาท`,M,130,11);
+ r.ci.benefits.forEach((b,i)=>{const y=158+i*49;c.fillStyle=i%2?'#FFFFFF':'#F9F3F6';c.fillRect(M,y,W-2*M,49);text(b.label,M+8,y+19,10,'#36283b',W-2*M-155);text(`${b.pct*100}% ของทุน`,M+8,y+36,9,'#877b87');text(`${money(b.amount)} บาท`,W-170,y+27,11,'#A13362',140);});
+ text('เงื่อนไขผลประโยชน์',M,481,11,'#A13362');
+ const notes=[...CI_TERMS,'อัตราอายุ 66–84 ปีสำหรับต่ออายุเท่านั้น หลังอายุ 84 ปีไม่มีอัตราในภาพที่ให้ไว้'];
+ notes.forEach((note,i)=>{
+  const pieces=[...note];let line='',lines=[];
+  c.font='10px Sarabun';
+  for(const ch of pieces){if(c.measureText(line+ch).width>W-2*M-14){lines.push(line);line=ch;}else line+=ch;}
+  if(line)lines.push(line);
+  lines.forEach((line,j)=>text(line,M,507+i*52+j*16,10));
+ });
+ text(LINE_CONTACT_TEXT,M,819,8,'#338169');text(`หน้า ${index+1} / ${total}`,W-95,819,8,'#877b87',70);
+ return canvas;
+}
 export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
+ if(layout.kind==='ci')return drawCIBenefits(canvas,r,index,total,scale);
  const legacy=r.type==='legacy',withRider=legacy&&!!r.rider,widths=withRider?[45,100,86,110,100,98.28]:legacy?[50,122,122,122,123.28]:[34,99,61,110,112,123.28];
  canvas.width=Math.ceil(W*scale);canvas.height=Math.ceil(H*scale);
  const c=canvas.getContext('2d');c.scale(scale,scale);c.fillStyle='#FFFFFF';c.fillRect(0,0,W,H);
@@ -23,7 +46,7 @@ export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
  text('TYINSURE',M,37,{size:18,bold:true,color:'#A13362'});
  text(legacy?'สรุปแผนประกันสุขภาพ':'สรุปแผนบำนาญ',W-M,37,{size:15,align:'right',bold:true});
  line(M,55,W-M,55,'#A13362');
- text(r.plan.label,M,71,{size:11,bold:true,maxWidth:W-2*M});
+ text(r.ci?`${r.reportMainLabel} + สัญญาเพิ่มเติมที่เลือก`:r.plan.label,M,71,{size:11,bold:true,maxWidth:W-2*M});
  if(layout.first){
   text(mode==='premium'?(legacy?`คำนวณจากเบี้ย${r.frequency.label}`:r.frequency?'คำนวณจากเบี้ยต่องวด':r.plan.kind==='single_premium'?'คำนวณจากเบี้ยชำระครั้งเดียว':'คำนวณจากเบี้ยประกันรายปี'):'คำนวณจากทุนประกัน',M,91,{size:9,color:'#877b87'});
   const meta=[['เพศ',r.gender==='male'?'ชาย':'หญิง','อายุเริ่มทำประกัน',`${r.age} ปี`],['ทุนประกัน',`${money(r.sum)} บาท`,(legacy||r.frequency)?`เบี้ย${r.frequency.label}`:r.plan.kind==='single_premium'?'เบี้ยครั้งเดียว':'เบี้ยรายปี',`${money(r.premium)} บาท`],['ระยะชำระเบี้ย',r.plan.kind==='single_premium'?'ครั้งเดียว':`${r.payYears} ปี`,r.plan.family==='mt8560'?'ช่วงรับบำนาญ':legacy?'ครบสัญญาที่อายุ':'เริ่มรับบำนาญ',r.plan.family==='mt8560'?'60–85 ปี':`${legacy?99:r.plan.pensionAge} ปี`],[withRider?'เบี้ยหลักที่ชำระรวม':'เบี้ยที่ชำระรวม',`${money(r.totalPaid)} บาท`,legacy?'เงินครบสัญญา':'เงินบำนาญรวม',`${money(legacy?r.maturityAmount:r.totalReceived)} บาท`]];
@@ -36,9 +59,9 @@ export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
  }else text(`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี | เบี้ย${(legacy||r.frequency)?r.frequency.label:r.plan.kind==='single_premium'?'ครั้งเดียว':'รายปี'} ${money(r.premium)} บาท`,M,88,{size:9});
  if(withRider){
   if(layout.first){
-   text(`สัญญาเพิ่มเติม สัญญาเพิ่มเติม ${r.rider.name} · กลุ่มอาชีพ ${r.rider.occupation}${r.rider.holiday?' · เพิ่มเบี้ยวันหยุดแล้ว':''}`,M,219,{size:9,bold:true,color:'#A13362',maxWidth:W-2*M});
+   text(`สัญญาเพิ่มเติม ${r.ci?r.reportRiderLabel:r.rider.name}${r.rider.occupation==='—'?'':' · กลุ่มอาชีพ '+r.rider.occupation}${r.rider.holiday?' · เพิ่มเบี้ยวันหยุดแล้ว':''}`,M,219,{size:9,bold:true,color:'#A13362',maxWidth:W-2*M});
    text(`เบี้ยเพิ่มเติม ปีแรก ${money(r.rider.premium)} บาท/งวด (${r.frequency.label}) · เบี้ยรวมปีแรก ${money(r.combinedFirstYearAnnual)} บาท/ปี`,M,235,{size:9,maxWidth:W-2*M});
-  }else text(`สัญญาเพิ่มเติม ${r.rider.name} · เบี้ยสัญญาเพิ่มเติมปรับตามอายุ`,M,104,{size:8,color:'#A13362'});
+  }else text(`สัญญาเพิ่มเติม ${r.ci?r.reportRiderLabel:r.rider.name} · เบี้ยสัญญาเพิ่มเติมปรับตามอายุ`,M,104,{size:8,color:'#A13362',maxWidth:W-2*M});
  }
  const headers=withRider?[['อายุ','(ปี)'],['เบี้ยประกันชีวิต','(บาท/ปี)'],['เบี้ยเพิ่มเติม','รวม (บาท/ปี)'],['เบี้ยประกันรวม','(บาท/ปี)'],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:legacy?[['อายุ','(ปี)'],['เบี้ยในช่วง','(บาท)'],['เบี้ยประกันรวม','(บาท/ปี)'],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:[['อายุ','(ปี)'],['เบี้ยที่ชำระ',r.plan.kind==='single_premium'?'(บาท)':'(บาท/ปี)'],['อัตรา','บำนาญ'],['เงินบำนาญ','(บาท/ปี)'],['บำนาญสะสม','(บาท)'],['ประกันชีวิต*','(บาท)']];
  c.fillStyle='#A13362';c.fillRect(M,layout.top,W-2*M,36);

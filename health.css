@@ -7,3 +7,9 @@
 #health-cost p { overflow-wrap:anywhere; }
 body.has-health-rider .table-scroll table { min-width:1060px; }
 body.has-health-rider.has-pa-rider .table-scroll table { min-width:1220px; }
+
+.ci-selector .field{margin-top:14px}.ci-selector .rider-description{display:block;line-height:1.8;margin-top:8px}
+.ci-selector .rider-benefits dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start}.ci-selector .rider-benefits dd{white-space:nowrap;text-align:right}.ci-selector .rider-benefits small{margin:6px 0;overflow-wrap:anywhere}
+body.has-ci-rider .table-scroll table{min-width:1220px}body.has-ci-rider.has-health-rider.has-pa-rider .table-scroll table{min-width:1440px}
+@media(max-width:760px){.rider-cost .rider-cost-total{flex-wrap:wrap}}
+@media print{body.has-ci-rider .table-scroll table{min-width:0}#ci-cost{break-inside:avoid}}

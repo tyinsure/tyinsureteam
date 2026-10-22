@@ -1,3 +1,4 @@
+import {ciQuote,CI_NAME} from './ci-perfect-care.mjs';
 const round=n=>Math.round((n+Number.EPSILON)*100)/100;
 export const HEALTH_NAMES={dhealth:'D Health Lite',elite:'Elite Health Plus',care:'Care Plus'};
 export const HEALTH_AREAS=['เฉพาะประเทศไทย','ทวีปเอเชีย','ทั่วโลกยกเว้นสหรัฐอเมริกา','ทั่วโลก'];
@@ -34,26 +35,28 @@ export function healthQuote(data,input,age=Number(input.age)){
 }
 export function annualTotalPremium(row,r){
  if(row.age===99)return 0;
- const values=[row.pay,...(r.rider?[row.riderPremium]:[]),...(r.health?[row.healthPremium]:[]),...(r.care?[row.carePremium]:[])];
+ const values=[row.pay,...(r.rider?[row.riderPremium]:[]),...(r.health?[row.healthPremium]:[]),...(r.care?[row.carePremium]:[]),...(r.ci?[row.ciPremium]:[])];
  return values.some(v=>v==null)?null:round(values.reduce((sum,v)=>sum+v,0));
 }
 export function addHealthRider(result,data,input){
  const count=result.frequency.payments;
  let r=result;
- const selected=[...(input.healthProduct?[['health',input]]:[]),...(input.careEnabled?[['care',{...input,healthProduct:'care'}]]:[])];
+ if(input.ciEnabled&&result.age>65)throw Error(`${CI_NAME}: ตารางเริ่มสัญญารองรับอายุ 0–65 ปี อายุ 66–84 ปีสำหรับต่ออายุเท่านั้น`);
+ const selected=[...(input.healthProduct?[['health',input]]:[]),...(input.careEnabled?[['care',{...input,healthProduct:'care'}]]:[]),...(input.ciEnabled?[['ci',input]]:[])];
  for(const [key,quoteInput] of selected){
-  const quote=healthQuote(data,quoteInput);if(quote.premium===null)throw Error(`ไม่มีอัตราเบี้ย ${quote.label} สำหรับอายุและตัวเลือกนี้ใน PDF กรุณาเปลี่ยนตัวเลือก`);
-  r={...r,[key]:{...quote,annual:round(quote.premium*count)},schedule:r.schedule.map(row=>{const q=healthQuote(data,quoteInput,row.age);return {...row,[key+'Premium']:row.age===99?0:q?.premium==null?null:round(q.premium*count)};})};
+  const getQuote=age=>key==='ci'?ciQuote(data.ci,quoteInput,age):healthQuote(data,quoteInput,age);
+  const quote=getQuote(result.age);if(!quote||quote.premium===null)throw Error(`ไม่มีอัตราเบี้ย ${quote?.label??CI_NAME} สำหรับอายุและตัวเลือกนี้ในเอกสาร กรุณาเปลี่ยนตัวเลือก`);
+  r={...r,[key]:{...quote,annual:round(quote.premium*count)},schedule:r.schedule.map(row=>{const q=getQuote(row.age);return {...row,[key+'Premium']:row.age===99?0:q?.premium==null?null:round(q.premium*count)};})};
  }
  if(!selected.length)return {...result,schedule:result.schedule.map(row=>({...row,totalPremium:annualTotalPremium(row,result)}))};
- const premium=round(r.premium+(r.rider?.premium??0)+(r.health?.premium??0)+(r.care?.premium??0));
+ const premium=round(r.premium+(r.rider?.premium??0)+(r.health?.premium??0)+(r.care?.premium??0)+(r.ci?.premium??0));
  return {...r,schedule:r.schedule.map(row=>({...row,totalPremium:annualTotalPremium(row,r)})),combinedFirstYearPremium:premium,combinedFirstYearAnnual:round(premium*count)};
 }
 export function healthReportResult(r){
- const extras=[r.health,r.care].filter(Boolean);if(!extras.length)return r;
+ const extras=[r.health,r.care,r.ci].filter(Boolean);if(!extras.length)return r;
  const description=extras.map(x=>`${x.label} · ${x.detail}`).join(' + ');
- return {...r,plan:{...r.plan,label:`${r.plan.label} + ${description}`},rider:{name:`${description}${r.rider?' + PA '+r.rider.name:''}`,occupation:'1–2',premium:round(extras.reduce((n,x)=>n+x.premium,0)+(r.rider?.premium??0)),holiday:false},schedule:r.schedule.map(row=>{
-  const premiums=[...(r.health?[row.healthPremium]:[]),...(r.care?[row.carePremium]:[]),...(r.rider?[row.riderPremium]:[])];
+ return {...r,reportMainLabel:r.plan.label,reportRiderLabel:[...extras.map(x=>x.label),...(r.rider?['PA '+r.rider.name]:[])].join(' + '),plan:{...r.plan,label:`${r.plan.label} + ${description}`},rider:{name:`${description}${r.rider?' + PA '+r.rider.name:''}`,occupation:r.health||r.care?'1–2':r.rider?'1':'—',premium:round(extras.reduce((n,x)=>n+x.premium,0)+(r.rider?.premium??0)),holiday:false},schedule:r.schedule.map(row=>{
+  const premiums=[...(r.health?[row.healthPremium]:[]),...(r.care?[row.carePremium]:[]),...(r.ci?[row.ciPremium]:[]),...(r.rider?[row.riderPremium]:[])];
   return {...row,riderPremium:premiums.some(v=>v===null)?null:round(premiums.reduce((n,v)=>n+v,0))};
  })};
 }
@@ -61,7 +64,7 @@ export function healthReportResult(r){
 // Validate selected, successfully quoted riders; health cover alone is insufficient.
 export function validateMainRiders(result){
  if(result.plan.family==='wholelife50000'){
-  const annual=round((result.health?.annual??0)+(result.care?.annual??0)+(result.rider?.annualPremium??0));
+  const annual=round((result.health?.annual??0)+(result.care?.annual??0)+(result.ci?.annual??0)+(result.rider?.annualPremium??0));
   if(annual<5000)throw Error('เบี้ยสัญญาเพิ่มเติมไม่ครบ 5,000บาท กรุณาเพิ่มให้ครบ');
   return;
  }
@@ -69,7 +72,7 @@ export function validateMainRiders(result){
  if(result.plan.requiresPA&&!result.rider){
   throw Error('สมาร์ท โพรเทคชั่น 99/99 (ทุน50,001–199,999) ต้องเลือกแผน PA');
  }
- if(result.plan.family!=='smart9999'&&!result.rider&&!result.care){
+ if(result.plan.family!=='smart9999'&&!result.rider&&!result.care&&!result.ci){
   throw Error('สมาร์ท โพรเทคชั่น 99/20 (ชำระ 20 ปี) ต้องเลือก PA หรือ Care Plus หรือประกันโรคร้ายแรง อย่างน้อย 1 แผน');
  }
 }
