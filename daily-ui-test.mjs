@@ -12,10 +12,10 @@ await import('./dist/health.mjs');
 assert.equal(nodes['daily-controls'].hidden,true);assert.equal(nodes['daily-cost'].hidden,true);assert.equal(nodes['daily-500'].disabled,true);
 nodes['daily-enabled'].checked=true;nodes['daily-enabled'].events.change();
 assert.equal(nodes['daily-controls'].hidden,false);assert.equal(nodes['daily-500'].attrs['aria-pressed'],'true');assert.equal(nodes['daily-1000'].attrs['aria-pressed'],'false');
-assert.equal(nodes['daily-premium'].textContent,'800.00 บาท/งวด (รายปี)');assert.ok(nodes['daily-benefits'].innerHTML.includes('750.00 บาท/วัน'));assert.ok(nodes['customer-summary-text'].value.includes('ค่าชดเชยรายวัน'));
+assert.equal(nodes['daily-premium'].textContent,'800.00 บาท/ปี');assert.ok(nodes['daily-benefits'].innerHTML.includes('750.00 บาท/วัน'));assert.ok(nodes['customer-summary-text'].value.includes('ค่าชดเชยรายวัน'));
 assert.equal(nodes['daily-premium-heading'].hidden,false);assert.ok(nodes['schedule-body'].innerHTML.includes('<td>800.00</td>'));
 nodes['daily-1000'].events.click();assert.equal(nodes['daily-1000'].attrs['aria-pressed'],'true');assert.ok(nodes['daily-premium'].textContent.includes('1,600.00'));assert.ok(nodes['daily-benefits'].innerHTML.includes('1,500.00'));
-nodes.age.value='46';nodes.frequency.value='monthly';nodes.frequency.events.change();assert.equal(nodes['daily-premium'].textContent,'189.00 บาท/งวด (รายเดือน)');
+nodes.age.value='46';nodes.frequency.value='monthly';nodes.frequency.events.change();assert.equal(nodes['daily-premium'].textContent,'189.00 บาท/เดือน');
 nodes['daily-500'].events.click();assert.ok(nodes['daily-premium'].textContent.includes('95.00'));assert.ok(nodes['daily-annual'].textContent.includes('1,140.00'));
 radio.value='female';nodes.frequency.events.change();assert.ok(nodes['daily-premium'].textContent.includes('95.00'));
 for(const age of ['15','65','']){nodes.age.value=age;nodes.age.events.input();assert.equal(nodes.error.hidden,false);assert.equal(nodes.pdf.disabled,true);assert.equal(nodes['schedule-body'].innerHTML,'');}

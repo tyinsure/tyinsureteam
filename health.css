@@ -4,7 +4,7 @@
 
 .health-selector .field:last-child { margin-bottom: 0; }
 .health-selector select { width:100%; max-width:100%; }
-#health-cost p { overflow-wrap:anywhere; }
+#premium-cost p { overflow-wrap:anywhere; }
 body.has-health-rider .table-scroll table { min-width:1060px; }
 body.has-health-rider.has-pa-rider .table-scroll table { min-width:1220px; }
 

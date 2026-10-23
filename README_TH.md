@@ -1,31 +1,29 @@
-# TYINSURE — Check Point 5 สำหรับ Bigg
+# TYINSURE — Check Point 6 · ตรวจระบบแล้ว
 
-วันที่ 22 ตุลาคม 2026
-Source commit: c31a66f14462be3df1fa825eabb9fd85b9c070d7
-ก่อน Debug: Check Point 4 commit 3c82a643adfe7646ea9b6e22781464fcbd84dc1a
+Source commit: `78d75a76def0417f8c547b084d612d76870237ed`
 
-อัปโหลดไปยัง repository tyinsure/tyinsureteam ตามที่ผู้ใช้มอบหมาย
-ชุดนี้รวมสรุป PDF D Health Lite, Elite Health Plus, Care Plus ทุกแผน, CI และค่าชดเชยรายวัน
-ผ่าน 24/24 ชุดทดสอบ และตรวจการส่งออกจริง PDF 8 หน้า / Excel
-รายละเอียดการตรวจอยู่ใน docs/checkpoints/checkpoint-5.md
+จุดก่อนตรวจ: Check Point 6 Update 2 (`7cc510ef6622483f5f97b9816b9e1d5c64114436`)
+จุดหลังตรวจ: `checkpoint-6-audited`
 
-## โครงสร้างและการอัปโหลด
+เว็บไซต์แบบ static ประกอบด้วยหน้าบำนาญ มรดก 99/20 วัยเก๋าคุ้มได้ใจ 99/10 วัยเก๋าคุ้มสุขใจ 90/90 และประกันสุขภาพ
+รวมเบี้ยตามงวด/ทุกงวด และส่งออก PDF/Excel ตามที่ผู้ใช้อนุมัติ
 
-- แตก ZIP และอัปโหลดไฟล์ทั้งหมดตามโครงสร้างเดิม ไม่อัปโหลด ZIP แทนไฟล์เว็บ
-- dist/ คือเว็บไซต์พร้อมใช้ ไฟล์ทดสอบอยู่ที่ root
-- repository เดิมมีไฟล์เว็บที่ root ด้วย ให้ซิงก์สำเนา root จาก dist/ ทุกไฟล์ รวม assets และ modules ใหม่ เพื่อไม่ให้เว็บ root เป็นรุ่นเก่า
-- รักษาไฟล์ของ repository ที่ไม่เกี่ยวข้อง ไม่ลบ workflow หรือเอกสารของผู้อื่น
-- ชุดนี้ตัด .openai/ ซึ่งผูกกับ Sites ออก และไม่รวม .git หรือข้อมูลรับรอง
-- รัน node run-tests.mjs จากโฟลเดอร์ที่แตกแล้วก่อนอัปโหลด
-- ตรวจไฟล์ dist/ และสำเนาเว็บ root ให้ตรงกับชุดนี้หลังอัปโหลด
-- ไม่สั่งเผยแพร่ GitHub Pages เพิ่มเอง การส่งครั้งนี้มอบหมายให้อัปโหลด GitHub
+แก้ตัวเลือกชดเชยวัยเก๋าคุ้มได้ใจทุน 200,000 ให้รองรับ 1,500 และ 2,000 ตาม source-4.png
+ทดสอบ 30/30 ชุด และเทียบผลเดิม 7,568 กรณีเท่าเดิม ดู docs/audit-checkpoint-6.md
 
-## เปิดใช้งาน
+## Bigg: อัปโหลด GitHub
 
-ใช้ static HTTP server ให้ document root เป็น dist/ เว็บใช้ ES modules และ fetch จึงควรเปิดผ่าน HTTP
-Netlify: Publish directory = dist, ไม่ต้อง build
-GitHub Pages: มี workflow สั่งรันเองใน .github/workflows/pages.yml เช่นชุดเดิม
+1. ตรวจ SHA256 ของ ZIP ตามไฟล์ manifest ที่ส่งคู่กัน
+2. รัน `node run-tests.mjs` จากโฟลเดอร์ที่แตก ZIP ต้องผ่าน 30/30
+3. นำไฟล์ชุดนี้ใส่ tyinsure/tyinsureteam บน main โดยรักษาไฟล์อื่นและตั้งค่าเดิม
+4. ชุดนี้มีไฟล์เว็บไซต์ทั้งที่ root และ dist/ อยู่แล้ว ให้คงทั้งสองตำแหน่งตรงกัน
+5. รวมทุกไฟล์ใหม่ของวัยเก๋า JSON CSS modules และ docs; ห้ามนำ .openai/ .git หรือ credentials ขึ้น GitHub
+6. ตรวจ root/dist และไฟล์ตาม UPLOAD_MANIFEST.json หลังอัปโหลด ส่ง commit URL กลับ
 
-การแก้รอบ Debug จำกัดเฉพาะ favicon ทุกหน้า และลบตัวแปร PDF ที่ไม่ได้ใช้ 2 จุด สูตรและอัตราเบี้ยคงเดิม
-สำรองก่อนตรวจ: TYINSURE_Check_Point_4.zip
-สำรองหลังตรวจ: TYINSURE_Check_Point_5.zip
+การส่งครั้งนี้เป็น source upload ไม่ต้องสั่ง deploy หรือแก้ GitHub Pages settings
+
+## เปิดทดสอบในเครื่อง
+
+ใช้ static HTTP server ที่โฟลเดอร์ dist/ หรือ root ห้ามเปิดด้วย file://
+ไม่มี dependency install หรือ build step สำหรับการใช้เว็บไซต์
+ต้องมี Node.js สำหรับรันชุดทดสอบ

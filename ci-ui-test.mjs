@@ -11,7 +11,7 @@ await import('./dist/health.mjs');
 assert.equal(nodes['ci-controls'].hidden,true);assert.equal(nodes['ci-premium-heading'].hidden,true);assert.equal(nodes.pdf.disabled,true);
 nodes['ci-enabled'].checked=true;nodes['ci-enabled'].events.change();
 assert.equal(nodes['ci-controls'].hidden,false);assert.equal(nodes['ci-sum'].disabled,false);assert.equal(nodes.error.hidden,true);assert.equal(nodes.pdf.disabled,false);
-assert.equal(nodes['ci-premium'].textContent,'4,850.00 บาท/งวด (รายปี)');assert.ok(nodes['ci-benefits'].innerHTML.includes('250,000.00'));assert.ok(nodes['customer-summary-text'].value.includes('ซีไอ เพอร์เฟค แคร์'));
+assert.equal(nodes['ci-premium'].textContent,'4,850.00 บาท/ปี');assert.ok(nodes['ci-benefits'].innerHTML.includes('250,000.00'));assert.ok(nodes['customer-summary-text'].value.includes('ซีไอ เพอร์เฟค แคร์'));
 assert.ok(nodes['schedule-body'].innerHTML.includes('<td>4,850.00</td>'));
 nodes['ci-sum'].value='1500000';nodes['ci-sum'].events.input();assert.ok(nodes['ci-premium'].textContent.includes('7,275.00'));
 nodes.frequency.value='monthly';nodes.frequency.events.change();assert.ok(nodes['ci-premium'].textContent.includes('640.50'));assert.equal(nodes['ci-sum'].value,'1500000');
