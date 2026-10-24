@@ -18,3 +18,5 @@ body.has-ci-rider .table-scroll table{min-width:1220px}body.has-ci-rider.has-hea
 .daily-selector .rider-benefits dl>div{margin-bottom:12px}.daily-selector .rider-benefits dd{margin-top:3px}.daily-selector details{margin-top:10px}.daily-selector summary{cursor:pointer;color:#a13362}.daily-selector details small{margin-top:8px}
 body.has-daily-rider .table-scroll table{min-width:1220px}body.has-daily-rider.has-health-rider.has-ci-rider.has-pa-rider .table-scroll table{min-width:1600px}
 @media print{body.has-daily-rider .table-scroll table{min-width:0}}
+
+.opd-selector details{margin-top:12px}.opd-selector summary{cursor:pointer;color:#a13362}.opd-selector details small{display:block;margin:8px 0;line-height:1.9}body.has-opd-rider .table-scroll table{min-width:1280px}@media print{body.has-opd-rider .table-scroll table{min-width:0}}

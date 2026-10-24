@@ -8,7 +8,7 @@ export function scheduleUnit(r,display='annual'){
 export function scheduleViewRow(r,row,display='annual'){
  if(display!=='modal')return row;
  const count=r.frequency?.payments??r.payments??1,view={...row};
- for(const key of ['pay','riderPremium','healthPremium','dailyPremium','carePremium','ciPremium','totalPremium','paPay','dailyPay','total']){
+ for(const key of ['pay','riderPremium','healthPremium','opdPremium','dailyPremium','carePremium','ciPremium','totalPremium','paPay','dailyPay','total']){
   if(typeof row[key]==='number')view[key]=round(row[key]/count);
  }
  return view;

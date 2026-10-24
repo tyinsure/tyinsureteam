@@ -1,3 +1,4 @@
+import {drawOPDBenefits} from './opd-pdf-summary.mjs';
 import {scheduleUnit} from './schedule-premium-view.mjs';
 import {LINE_CONTACT_TEXT,addLineContactLink} from './pdf-contact-link.mjs';
 import {CI_TERMS,CI_PROJECTION_NOTE} from './ci-perfect-care.mjs';
@@ -15,6 +16,7 @@ export function reportPageLayouts(r){
  if(r.health?.product==='dhealth')pages.push({kind:'dhealth',first:false,top:100,rows:[]});
  if(r.health?.product==='elite')for(const kind of ['elite','elite-extra'])pages.push({kind,first:false,top:100,rows:[]});
  if(r.care||r.health?.product==='care')pages.push({kind:'care',first:false,top:100,rows:[]});
+ if(r.opd)pages.push({kind:'opd',first:false,top:100,rows:[]});
  if(r.ci)pages.push({kind:'ci',first:false,top:100,rows:[]});
  if(r.daily)pages.push({kind:'daily',first:false,top:100,rows:[]});
  return pages;
@@ -60,6 +62,7 @@ function drawDailyBenefits(canvas,r,index,total,scale){
 export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
  if(['elite','elite-extra','care'].includes(layout.kind))return drawExtraHealthSummary(canvas,r,layout.kind,index,total,scale);
  if(layout.kind==='dhealth')return drawDHealthBenefits(canvas,r,index,total,scale);
+ if(layout.kind==='opd')return drawOPDBenefits(canvas,r,index,total,scale);
  if(layout.kind==='ci')return drawCIBenefits(canvas,r,index,total,scale);
  if(layout.kind==='daily')return drawDailyBenefits(canvas,r,index,total,scale);
  const legacy=r.type==='legacy',withRider=legacy&&!!r.rider,widths=withRider?[45,100,86,110,100,98.28]:legacy?[50,122,122,122,123.28]:[34,99,61,110,112,123.28];
@@ -87,9 +90,9 @@ export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
  }else text(`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี | เบี้ย${(legacy||r.frequency)?r.frequency.label:r.plan.kind==='single_premium'?'ครั้งเดียว':'รายปี'} ${money(r.premium)} บาท`,M,88,{size:9});
  if(withRider){
   if(layout.first){
-   text(`สัญญาเพิ่มเติม ${r.ci||r.daily?r.reportRiderLabel:r.rider.name}${r.rider.occupation==='—'?'':' · กลุ่มอาชีพ '+r.rider.occupation}${r.rider.holiday?' · เพิ่มเบี้ยวันหยุดแล้ว':''}`,M,219,{size:9,bold:true,color:'#A13362',maxWidth:W-2*M});
+   text(`สัญญาเพิ่มเติม ${r.ci||r.daily||r.opd?r.reportRiderLabel:r.rider.name}${r.rider.occupation==='—'?'':' · กลุ่มอาชีพ '+r.rider.occupation}${r.rider.holiday?' · เพิ่มเบี้ยวันหยุดแล้ว':''}`,M,219,{size:9,bold:true,color:'#A13362',maxWidth:W-2*M});
    text(`เบี้ยเพิ่มเติม ปีแรก ${money(r.rider.premium)} บาท/งวด (${r.frequency.label}) · เบี้ยรวมปีแรก ${money(r.combinedFirstYearAnnual)} บาท/ปี`,M,235,{size:9,maxWidth:W-2*M});
-  }else text(`สัญญาเพิ่มเติม ${r.ci||r.daily?r.reportRiderLabel:r.rider.name} · ${r.daily?'เบี้ยค่าชดเชยรายวันคงที่ตามอายุเริ่มสัญญา':'เบี้ยสัญญาเพิ่มเติมปรับตามอายุ'}`,M,104,{size:8,color:'#A13362',maxWidth:W-2*M});
+  }else text(`สัญญาเพิ่มเติม ${r.ci||r.daily||r.opd?r.reportRiderLabel:r.rider.name} · ${r.daily?'เบี้ยค่าชดเชยรายวันคงที่ตามอายุเริ่มสัญญา':'เบี้ยสัญญาเพิ่มเติมปรับตามอายุ'}`,M,104,{size:8,color:'#A13362',maxWidth:W-2*M});
  }
  const unit=scheduleUnit(r,r.schedulePremiumDisplay);
  const headers=withRider?[['อายุ','(ปี)'],['เบี้ยประกันชีวิต',`(บาท/${unit})`],['เบี้ยเพิ่มเติม',`รวม (บาท/${unit})`],['เบี้ยประกันรวม',`(บาท/${unit})`],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:legacy?[['อายุ','(ปี)'],['เบี้ยในช่วง',`(บาท/${unit})`],['เบี้ยประกันรวม',`(บาท/${unit})`],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:[['อายุ','(ปี)'],['เบี้ยที่ชำระ',r.plan.kind==='single_premium'?'(บาท)':'(บาท/ปี)'],['อัตรา','บำนาญ'],['เงินบำนาญ','(บาท/ปี)'],['บำนาญสะสม','(บาท)'],['ประกันชีวิต*','(บาท)']];

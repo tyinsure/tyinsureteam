@@ -1,23 +1,14 @@
-# TYINSURE — Check Point 8 สำหรับ GitHub
+# TYINSURE — OPD เหมาจ่ายและ OPD ต่อครั้ง
 
-Source commit: `92efce29c6e8b2067953977ea77bc125c64f54c1`
-Git tag: `checkpoint-8`
+Source commit: d03395a60b74abceced3490f9abb410caf696ac2
+วันที่ 24 ตุลาคม 2026
 
-รุ่นนี้มีปุ่มตารางแสดงเบี้ยตามโหมดชำระ/เบี้ยทั้งปีทั่วโปรเจกต์ และ PDF ตามมุมมองที่เลือก
-ดูรายละเอียด docs/project-schedule-premium-views.md และ docs/checkpoints/checkpoint-8.md
+เพิ่ม OPD เหมาจ่าย 6 แผน และ OPD ต่อครั้ง 7 แผน พร้อมเบี้ย 4 โหมดชำระ
+รวมเบี้ย ตารางรายปี/ตามโหมดชำระ LINE PDF และ Excel แล้ว
+รัน node run-tests.mjs ต้องผ่าน 35/35 ชุด
 
-## อัปโหลด
-
-1. แตก ZIP แล้วอัปโหลดไฟล์และโฟลเดอร์ภายในไปที่ root ของ tyinsure/tyinsureteam บน main
-2. มีเว็บไซต์ทั้ง root และ dist/ ซึ่งตรงกัน ให้อัปโหลดทั้งสองตำแหน่ง
-3. รักษาไฟล์อื่น โฟลเดอร์ .github และการตั้งค่าเดิมของ repository ห้ามลบไฟล์ที่ไม่ได้อยู่ในชุดนี้
-4. รวมไฟล์ใหม่ทั้งหมดโดยเฉพาะ schedule-premium-view.mjs ทั้ง root และ dist/
-5. ไม่มี .openai/ .git credentials หรือ runtime folders ในชุดอัปโหลด
-6. ตรวจ UPLOAD_MANIFEST.json หลังอัปโหลด และส่ง commit URL กลับ
-
-ไม่ต้องสั่ง deploy หรือเปลี่ยน GitHub Pages เป็นการอัปโหลดซอร์สเท่านั้น
-
-## ทดสอบ
-
-รัน `node run-tests.mjs` จากโฟลเดอร์แตก ZIP ต้องผ่าน 32/32 ชุด
-เว็บ static ไม่มี dependency install/build step เปิดผ่าน HTTP server ที่ root หรือ dist/ ไม่ใช้ file://
+สำหรับ Bigg: อัปโหลดไฟล์ชุดนี้ไปยัง tyinsure/tyinsureteam สาขา main
+คงเว็บไซต์ที่ root และ dist/ ให้ตรงกัน ตรวจไฟล์ด้วย UPLOAD_MANIFEST.json
+รักษาไฟล์อื่นและการตั้งค่าเดิม รวมถึง .github/ ไม่ต้องสั่ง deploy หรือเปลี่ยน GitHub Pages
+ไม่อัปโหลด .openai/ .git/ credentials หรือไฟล์ชั่วคราว
+เปิดเว็บไซต์ผ่าน static HTTP server ไม่มีขั้นตอนติดตั้ง dependency หรือ build
