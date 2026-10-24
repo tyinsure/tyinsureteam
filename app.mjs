@@ -1,3 +1,4 @@
+import {scheduleUnit,scheduleViewRow,scheduleViewResult} from './schedule-premium-view.mjs';
 import {mountCustomerSummary} from './summary-controller.mjs';
 import {createCustomerSummary} from './customer-summary.mjs';
 import {createPDFReport} from './pdf-export.mjs';
@@ -7,7 +8,7 @@ import {calculate,planBands} from './calculator.mjs';
 const $=id=>document.getElementById(id);
 const money=n=>Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const compact=n=>n>=1000000?`${n/1000000} ล้าน`:n>=1000?`${n/1000}k`:String(n);
-let plans=[],mode='sum',result=null,lastCalculatedInput='';
+let plans=[],mode='sum',result=null,lastCalculatedInput='',scheduleDisplay='annual';
 const input=()=>({mode,gender:document.querySelector('input[name="gender"]:checked')?.value,age:$('age').value,planId:$('plan').value,amount:$('amount').value,frequency:plans.find(p=>p.id===$('plan').value)?.family==='mt8560'?$('frequency').value:'annual'});
 const summary=mountCustomerSummary({getResult:()=>result,getInput:input,refresh:render,createSummary:createCustomerSummary});
 function updateHints(){
@@ -44,9 +45,7 @@ function render(){
   $('first-pension').textContent=money(r.firstPension);$('first-pension-note').textContent=`บาท/ปี · เริ่มอายุ ${r.plan.pensionAge} ปี`;
   $('total-pension').textContent=money(r.totalReceived);$('total-paid').textContent=money(r.totalPaid);$('pay-note').textContent=r.plan.kind==='single_premium'?'บาท · ชำระครั้งเดียว':`บาท · ชำระ ${r.payYears} ปี`;
   $('calculation-note').textContent=mode==='premium'?(r.alternatives>1?'เบี้ยนี้คำนวณได้หลายช่วงทุน ระบบเลือกทุนที่สูงที่สุดให้แล้ว':'คำนวณจากเบี้ยที่กรอกโดยตรง ทุนประกันแสดงทศนิยม 2 ตำแหน่ง'):'อัตราเบี้ยขึ้นกับเพศ อายุเริ่มทำประกัน และช่วงทุนประกัน';
-  $('schedule-description').textContent=`${r.plan.label} · ${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ทุน ${money(r.sum)} บาท`;
-  $('schedule-body').innerHTML=r.schedule.map(row=>`<tr class="${[r.plan.pensionAge,71,76,81,86].includes(row.age)?'milestone':''}"><td><span class="age-number">${row.age}</span><span class="phase ${row.before?'':'pension-phase'}">${row.phase}</span></td><td>${row.pay?money(row.pay):'<span class="dash">—</span>'}</td><td>${row.pct?`${Math.round(row.pct*100)}%`:'<span class="dash">—</span>'}</td><td class="${row.pension?'pension-value':''}">${row.pension?money(row.pension):'<span class="dash">—</span>'}</td><td>${money(row.received)}</td><td class="coverage-value">${row.coverage===null?'-':money(row.coverage)}${row.before&&r.plan.family!=='mt8560'?'<sup title="ขั้นต่ำ 105% ของเบี้ยสะสม">*</sup>':''}</td></tr>`).join('');
-  $('row-count').textContent=`ทั้งหมด ${r.schedule.length} ปี · อายุ ${r.age}–${r.plan.maturityAge??90} ปี`;
+  renderSchedule(r);
   $('csv').disabled=false;$('pdf').disabled=false;$('print').disabled=false;
   lastCalculatedInput=JSON.stringify(input());
   summary.update();
@@ -59,6 +58,14 @@ function render(){
   $('rate-detail').textContent='';$('calculation-note').textContent='แก้ไขข้อมูลเพื่อดูผลคำนวณ';
   $('schedule-body').replaceChildren();$('row-count').textContent='กรอกข้อมูลให้ครบเพื่อคำนวณ';$('chart').replaceChildren();$('csv').disabled=true;$('pdf').disabled=true;$('print').disabled=true;summary.update();
  }
+}
+function renderSchedule(r){
+ const unit=scheduleUnit(r,scheduleDisplay),single=r.plan.kind==='single_premium';
+ $('schedule-main-heading').innerHTML=(single?'เบี้ยชำระครั้งเดียว':'เบี้ยที่ชำระ')+'<br><small>'+(single?'บาท':'บาท/'+unit)+'</small>';
+ for(const display of ['modal','annual'])$('schedule-view-'+display).setAttribute('aria-pressed',String(display===scheduleDisplay));
+  $('schedule-description').textContent=`${r.plan.label} · ${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ทุน ${money(r.sum)} บาท`;
+  $('schedule-body').innerHTML=r.schedule.map(original=>{const row=scheduleViewRow(r,original,scheduleDisplay);return `<tr class="${[r.plan.pensionAge,71,76,81,86].includes(row.age)?'milestone':''}"><td><span class="age-number">${row.age}</span><span class="phase ${row.before?'':'pension-phase'}">${row.phase}</span></td><td>${row.pay?money(row.pay):'<span class="dash">—</span>'}</td><td>${row.pct?`${Math.round(row.pct*100)}%`:'<span class="dash">—</span>'}</td><td class="${row.pension?'pension-value':''}">${row.pension?money(row.pension):'<span class="dash">—</span>'}</td><td>${money(row.received)}</td><td class="coverage-value">${row.coverage===null?'-':money(row.coverage)}${row.before&&r.plan.family!=='mt8560'?'<sup title="ขั้นต่ำ 105% ของเบี้ยสะสม">*</sup>':''}</td></tr>`;}).join('');
+  $('row-count').textContent=`ทั้งหมด ${r.schedule.length} ปี · อายุ ${r.age}–${r.plan.maturityAge??90} ปี`;
 }
 function drawChart(){
  if(!result)return;
@@ -82,7 +89,7 @@ async function downloadReport(format){
  if(!result)return;
  const r=result,button=$(format==='pdf'?'pdf':'csv'),label=button.innerHTML;button.disabled=true;button.textContent='กำลังสร้างไฟล์…';
  try{
-  const blob=await (format==='pdf'?createPDFReport(r,mode):createExcelReport(r,mode)),url=URL.createObjectURL(blob),a=document.createElement('a');
+  const blob=await (format==='pdf'?createPDFReport(scheduleViewResult(r,scheduleDisplay),mode):createExcelReport(r,mode)),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=`TYINSURE_Flexi_Retire_${r.plan.id}_age${r.age}.${format==='pdf'?'pdf':'xlsx'}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(e){$('error').hidden=false;$('error').textContent=`ส่งออก ${format==='pdf'?'PDF':'Excel'} ไม่สำเร็จ กรุณาลองอีกครั้ง (${e.message})`;}
  finally{button.innerHTML=label;button.disabled=!result;}
@@ -100,6 +107,7 @@ try{
  $('frequency').addEventListener('change',()=>{updateHints();render();});
  $('plan').addEventListener('change',()=>{updateHints();render();});
  document.querySelectorAll('input[name="gender"]').forEach(el=>el.addEventListener('change',()=>{render();}));
+ for(const display of ['modal','annual'])$('schedule-view-'+display).addEventListener('click',()=>{scheduleDisplay=display;if(JSON.stringify(input())!==lastCalculatedInput)render();else if(result)renderSchedule(result);});
  $('csv').addEventListener('click',()=>downloadReport('xlsx'));$('pdf').addEventListener('click',()=>downloadReport('pdf'));$('print').addEventListener('click',()=>{render();if(result)window.print();});
  window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(drawChart,150);});
  updateHints();render();$('loading').remove();

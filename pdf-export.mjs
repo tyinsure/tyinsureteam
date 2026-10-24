@@ -1,3 +1,5 @@
+import {scheduleUnit} from './schedule-premium-view.mjs';
+import {schedulePremiumValues} from './legacy-schedule-view.mjs';
 import {LINE_CONTACT_TEXT,addLineContactLink} from './pdf-contact-link.mjs';
 const W=595.28,H=841.89,M=28,TABLE_BOTTOM=738,ROW=20;
 const money=n=>Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -39,13 +41,15 @@ export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
    text(`เบี้ย PA ปีแรก ${money(r.rider.premium)} บาท/งวด (${r.frequency.label}) · เบี้ยรวมปีแรก ${money(r.combinedFirstYearAnnual)} บาท/ปี`,M,235,{size:9,maxWidth:W-2*M});
   }else text(`PA Easy Plan ${r.rider.name} · เบี้ยสัญญาเพิ่มเติมปรับตามอายุ`,M,104,{size:8,color:'#A13362'});
  }
- const headers=withRider?[['อายุ','(ปี)'],['เบี้ยประกันชีวิต','(บาท/ปี)'],['เบี้ยPA','(บาท/ปี)'],['เบี้ยหลักสะสม','(บาท)'],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:legacy?[['อายุ','(ปี)'],['เบี้ยในช่วง','(บาท)'],['เบี้ยสะสม','(บาท)'],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:[['อายุ','(ปี)'],['เบี้ยที่ชำระ',r.plan.kind==='single_premium'?'(บาท)':'(บาท/ปี)'],['อัตรา','บำนาญ'],['เงินบำนาญ','(บาท/ปี)'],['บำนาญสะสม','(บาท)'],['ประกันชีวิต*','(บาท)']];
+ const scheduleDisplay=r.schedulePremiumDisplay,unit=scheduleUnit(r,scheduleDisplay);
+ const headers=withRider?[['อายุ','(ปี)'],['เบี้ยประกันชีวิต',`(บาท/${unit})`],['เบี้ยPA',`(บาท/${unit})`],[scheduleDisplay?'เบี้ยประกันรวม':'เบี้ยหลักสะสม',scheduleDisplay?`(บาท/${unit})`:'(บาท)'],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:legacy?[['อายุ','(ปี)'],['เบี้ยในช่วง','(บาท)'],['เบี้ยสะสม','(บาท)'],['ประกันชีวิต*','(บาท)'],['เงินครบสัญญา','(บาท)']]:[['อายุ','(ปี)'],['เบี้ยที่ชำระ',r.plan.kind==='single_premium'?'(บาท)':`(บาท/${unit})`],['อัตรา','บำนาญ'],['เงินบำนาญ','(บาท/ปี)'],['บำนาญสะสม','(บาท)'],['ประกันชีวิต*','(บาท)']];
  c.fillStyle='#A13362';c.fillRect(M,layout.top,W-2*M,36);
  let x=M;headers.forEach((lines,j)=>{lines.forEach((s,k)=>text(s,x+widths[j]/2,layout.top+11+k*14,{size:9,color:'#FFFFFF',bold:true,align:'center'}));x+=widths[j];});
  layout.rows.forEach((row,i)=>{
   const y=layout.top+36+i*ROW,milestone=(legacy?[r.age,r.age+19,99]:[r.plan.pensionAge,71,76,81,86]).includes(row.age);
   c.fillStyle=milestone?'#F9EAF1':i%2?'#FCFAFB':'#FFFFFF';c.fillRect(M,y,W-2*M,ROW);
-  let x=M;const values=withRider?[row.age,row.pay?money(row.pay):'-',row.riderPremium===null?'ไม่มีอัตรา':money(row.riderPremium),money(row.paid),row.coverage?money(row.coverage):'-',row.maturity?money(row.maturity):'-']:legacy?[row.age,row.pay?money(row.pay):'-',money(row.paid),row.coverage?money(row.coverage):'-',row.maturity?money(row.maturity):'-']:[row.age,row.pay?money(row.pay):'-',row.pct?`${Math.round(row.pct*100)}%`:'-',row.pension?money(row.pension):'-',row.received?money(row.received):'-',row.coverage===null?'-':row.coverage?money(row.coverage):'-'];
+  const premiums=withRider?schedulePremiumValues(r,row,scheduleDisplay):null;
+  let x=M;const values=withRider?[row.age,premiums.main?money(premiums.main):'-',premiums.rider===null?'ไม่มีอัตรา':money(premiums.rider),scheduleDisplay?(premiums.total===null?'ไม่มีอัตรา':money(premiums.total)):money(row.paid),row.coverage?money(row.coverage):'-',row.maturity?money(row.maturity):'-']:legacy?[row.age,row.pay?money(row.pay):'-',money(row.paid),row.coverage?money(row.coverage):'-',row.maturity?money(row.maturity):'-']:[row.age,row.pay?money(row.pay):'-',row.pct?`${Math.round(row.pct*100)}%`:'-',row.pension?money(row.pension):'-',row.received?money(row.received):'-',row.coverage===null?'-':row.coverage?money(row.coverage):'-'];
   values.forEach((v,j)=>{text(v,j===0?x+widths[j]/2:x+widths[j]-6,y+ROW/2,{size:9,bold:milestone,align:j===0?'center':'right',color:(legacy?j===(withRider?4:3)&&row.coverage:j===3&&row.pension)?'#A13362':'#36283b',maxWidth:widths[j]-10});x+=widths[j];});
   line(M,y+ROW,W-M,y+ROW);
  });
@@ -54,7 +58,7 @@ export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
  line(M,759,W-M,759,'#A13362');
  text(r.plan.family==='mt8560'?'* ก่อนบำนาญ: 100% ของทุนถึงอายุ 44 ปี อายุ 45–59 ปีเพิ่มเป็น 110–250%':legacy?'* ความคุ้มครองขั้นต่ำ = ค่าสูงกว่าระหว่างทุนและเบี้ยสะสม ยังไม่รวมมูลค่าเวนคืน':'* ก่อนรับบำนาญ: ความคุ้มครองขั้นต่ำ 105% ของเบี้ยประกันที่ชำระสะสม',M,774,{size:8});
  text(r.plan.family==='mt8560'?'อายุ 60–73 ปี: มูลค่าปัจจุบันตามตาราง × ทุน ÷ 1,000 · อายุ 74–85 ปี: -':legacy?'อายุ ณ ต้นปี เบี้ยสะสมคิดหลังชำระครบทุกงวดของปีนั้น แถวสุดท้ายครบอายุ 99 ปี':'หลังเริ่มรับบำนาญ: เบี้ยสะสมหักเงินบำนาญสะสมที่ได้รับแล้ว (ไม่ต่ำกว่า 0 บาท)',M,788,{size:8});
- if(withRider)text('ตาราง PA รวมทุกงวดต่อปีตามอายุ กลุ่มอาชีพ 1 การต่ออายุขึ้นกับเงื่อนไข ไม่มีอัตราไม่ใช่เบี้ยฟรี',M,800,{size:7.5,maxWidth:W-2*M});
+ if(withRider)text(scheduleDisplay==='modal'?'ตารางเบี้ยต่องวดตามโหมดชำระ กลุ่มอาชีพ 1 การต่ออายุขึ้นกับเงื่อนไข ไม่มีอัตราไม่ใช่เบี้ยฟรี':'ตาราง PA รวมทุกงวดต่อปีตามอายุ กลุ่มอาชีพ 1 การต่ออายุขึ้นกับเงื่อนไข ไม่มีอัตราไม่ใช่เบี้ยฟรี',M,800,{size:7.5,maxWidth:W-2*M});
  text(LINE_CONTACT_TEXT,M,withRider?819:809,{size:8,color:'#338169'});
  text(`หน้า ${index+1} / ${total}`,W-M,withRider?819:809,{size:8,color:'#877b87',align:'right'});
  return canvas;

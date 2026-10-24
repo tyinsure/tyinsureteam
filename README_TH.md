@@ -1,29 +1,23 @@
-# TYINSURE — Check Point 6 · ตรวจระบบแล้ว
+# TYINSURE — Check Point 8 สำหรับ GitHub
 
-Source commit: `78d75a76def0417f8c547b084d612d76870237ed`
+Source commit: `92efce29c6e8b2067953977ea77bc125c64f54c1`
+Git tag: `checkpoint-8`
 
-จุดก่อนตรวจ: Check Point 6 Update 2 (`7cc510ef6622483f5f97b9816b9e1d5c64114436`)
-จุดหลังตรวจ: `checkpoint-6-audited`
+รุ่นนี้มีปุ่มตารางแสดงเบี้ยตามโหมดชำระ/เบี้ยทั้งปีทั่วโปรเจกต์ และ PDF ตามมุมมองที่เลือก
+ดูรายละเอียด docs/project-schedule-premium-views.md และ docs/checkpoints/checkpoint-8.md
 
-เว็บไซต์แบบ static ประกอบด้วยหน้าบำนาญ มรดก 99/20 วัยเก๋าคุ้มได้ใจ 99/10 วัยเก๋าคุ้มสุขใจ 90/90 และประกันสุขภาพ
-รวมเบี้ยตามงวด/ทุกงวด และส่งออก PDF/Excel ตามที่ผู้ใช้อนุมัติ
+## อัปโหลด
 
-แก้ตัวเลือกชดเชยวัยเก๋าคุ้มได้ใจทุน 200,000 ให้รองรับ 1,500 และ 2,000 ตาม source-4.png
-ทดสอบ 30/30 ชุด และเทียบผลเดิม 7,568 กรณีเท่าเดิม ดู docs/audit-checkpoint-6.md
+1. แตก ZIP แล้วอัปโหลดไฟล์และโฟลเดอร์ภายในไปที่ root ของ tyinsure/tyinsureteam บน main
+2. มีเว็บไซต์ทั้ง root และ dist/ ซึ่งตรงกัน ให้อัปโหลดทั้งสองตำแหน่ง
+3. รักษาไฟล์อื่น โฟลเดอร์ .github และการตั้งค่าเดิมของ repository ห้ามลบไฟล์ที่ไม่ได้อยู่ในชุดนี้
+4. รวมไฟล์ใหม่ทั้งหมดโดยเฉพาะ schedule-premium-view.mjs ทั้ง root และ dist/
+5. ไม่มี .openai/ .git credentials หรือ runtime folders ในชุดอัปโหลด
+6. ตรวจ UPLOAD_MANIFEST.json หลังอัปโหลด และส่ง commit URL กลับ
 
-## Bigg: อัปโหลด GitHub
+ไม่ต้องสั่ง deploy หรือเปลี่ยน GitHub Pages เป็นการอัปโหลดซอร์สเท่านั้น
 
-1. ตรวจ SHA256 ของ ZIP ตามไฟล์ manifest ที่ส่งคู่กัน
-2. รัน `node run-tests.mjs` จากโฟลเดอร์ที่แตก ZIP ต้องผ่าน 30/30
-3. นำไฟล์ชุดนี้ใส่ tyinsure/tyinsureteam บน main โดยรักษาไฟล์อื่นและตั้งค่าเดิม
-4. ชุดนี้มีไฟล์เว็บไซต์ทั้งที่ root และ dist/ อยู่แล้ว ให้คงทั้งสองตำแหน่งตรงกัน
-5. รวมทุกไฟล์ใหม่ของวัยเก๋า JSON CSS modules และ docs; ห้ามนำ .openai/ .git หรือ credentials ขึ้น GitHub
-6. ตรวจ root/dist และไฟล์ตาม UPLOAD_MANIFEST.json หลังอัปโหลด ส่ง commit URL กลับ
+## ทดสอบ
 
-การส่งครั้งนี้เป็น source upload ไม่ต้องสั่ง deploy หรือแก้ GitHub Pages settings
-
-## เปิดทดสอบในเครื่อง
-
-ใช้ static HTTP server ที่โฟลเดอร์ dist/ หรือ root ห้ามเปิดด้วย file://
-ไม่มี dependency install หรือ build step สำหรับการใช้เว็บไซต์
-ต้องมี Node.js สำหรับรันชุดทดสอบ
+รัน `node run-tests.mjs` จากโฟลเดอร์แตก ZIP ต้องผ่าน 32/32 ชุด
+เว็บ static ไม่มี dependency install/build step เปิดผ่าน HTTP server ที่ root หรือ dist/ ไม่ใช้ file://

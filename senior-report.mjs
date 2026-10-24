@@ -1,3 +1,4 @@
+import {scheduleUnit,scheduleViewRow} from './schedule-premium-view.mjs';
 import {seniorMoney as money,seniorNotes,SENIOR_HEALTH_NOTE} from './senior-calculator.mjs';
 import {zipParts} from './excel-export.mjs';
 import {LINE_CONTACT_TEXT,addLineContactLink} from './pdf-contact-link.mjs';
@@ -42,12 +43,13 @@ export function seniorPDFLayouts(r,measure){
   for(const ch of valueText){if(ch==='\n'||measure(line+ch)>width){if(line)lines.push(line);line=ch==='\n'?'':ch;}else line+=ch;}
   if(line||!lines.length)lines.push(line);return lines;
  };
- const headers=['อายุ\n(ปี)','เบี้ยหลัก\n(บาท/ปี)','เบี้ยสัญญา\nเพิ่มเติม\n(บาท/ปี)','เบี้ยรวม\n(บาท/ปี)','กรณีเสียชีวิต\n(บาท)','กรณีเสียชีวิต\nจากอุบัติเหตุ\n(บาท)','เงินครบสัญญา\n(บาท)'];
+ const unit=scheduleUnit(r,r.schedulePremiumDisplay);
+ const headers=['อายุ\n(ปี)',`เบี้ยหลัก\n(บาท/${unit})`,`เบี้ยสัญญา\nเพิ่มเติม\n(บาท/${unit})`,`เบี้ยรวม\n(บาท/${unit})`,'กรณีเสียชีวิต\n(บาท)','กรณีเสียชีวิต\nจากอุบัติเหตุ\n(บาท)','เงินครบสัญญา\n(บาท)'];
  const header=headers.map((text,i)=>wrap(text,widths[i]-8)),headerHeight=Math.max(...header.map(x=>x.length))*lineHeight+8;
  const noteLines=r.health?SENIOR_HEALTH_NOTE.split('\n').flatMap(line=>wrap(line,539.28)):[],noteHeight=noteLines.length?28+noteLines.length*13:0;
  const available=744-105-headerHeight-noteHeight,rowHeight=Math.floor(Math.min(18,available/r.schedule.length)*100)/100;
- const rows=r.schedule.map(x=>({height:rowHeight,lines:[String(x.age),money(x.pay),money(Math.round((x.paPay+x.dailyPay)*100)/100),money(x.total),money(x.illness),money(x.combinedAccident),money(x.maturity)].map(value=>[value])}));
- return [{title:'ตารางเบี้ยประกันและผลประโยชน์รายปี (บาท)',widths,header,headerHeight,noteLines,noteHeight,rows,fontSize:Math.min(fontSize,rowHeight-2),lineHeight}];
+ const rows=r.schedule.map(original=>{const x=scheduleViewRow(r,original,r.schedulePremiumDisplay);return {height:rowHeight,lines:[String(x.age),money(x.pay),money(Math.round((x.paPay+x.dailyPay)*100)/100),money(x.total),money(x.illness),money(x.combinedAccident),money(x.maturity)].map(value=>[value])};});
+ return [{title:r.schedulePremiumDisplay==='modal'?'ตารางเบี้ยตามโหมดชำระและผลประโยชน์ (บาท)':'ตารางเบี้ยประกันและผลประโยชน์รายปี (บาท)',widths,header,headerHeight,noteLines,noteHeight,rows,fontSize:Math.min(fontSize,rowHeight-2),lineHeight}];
 }
 export function drawSeniorPDFPage(canvas,r,page,index,total,scale=3){
  const W=595.28,H=841.89;canvas.width=Math.ceil(W*scale);canvas.height=Math.ceil(H*scale);

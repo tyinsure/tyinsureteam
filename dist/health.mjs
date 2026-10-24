@@ -1,3 +1,4 @@
+import {scheduleUnit,scheduleViewRow,scheduleViewResult} from './schedule-premium-view.mjs';
 import {dailyBenefits,DAILY_TERMS,dailySummary} from './daily-compensation.mjs';
 import {CI_TERMS,ciSummary} from './ci-perfect-care.mjs';
 import {healthOptions,addHealthRider,healthReportResult,validateMainRiders} from './health-rider.mjs';
@@ -9,7 +10,8 @@ import {createExcelReport} from './health-excel-export.mjs';
 import {createPDFReport} from './health-pdf-export.mjs';
 import {premiumPaymentViews,premiumPaymentTable} from './premium-payment-views.mjs';
 const $=id=>document.getElementById(id),money=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
-let healthData,data,mode='sum',result=null,dailyBenefit=500,premiumView='selected';
+const originalHealthTiming=$('health-table-note').textContent,originalScheduleFooter=$('schedule-footer-note').textContent;
+let healthData,data,mode='sum',result=null,dailyBenefit=500,premiumView='selected',scheduleDisplay='annual';
 function updatePremiumView(r){
  const all=premiumView==='all';
  const unit={annual:'ปี',semiannual:'6เดือน',quarterly:'3เดือน',monthly:'เดือน'}[r.frequency.id];
@@ -104,9 +106,7 @@ function render(){
   $('start-age').textContent=`${r.age} ปี`;$('paid-age').textContent=`${r.age+r.payYears} ปี`;
   $('main-journey-title').textContent=`ชำระ ${r.payYears} ปี คุ้มครองถึงอายุ 99 ปี`;$('main-paid-label').textContent=`ชำระครบ ${r.payYears} ปี`;
   $('calculation-note').textContent=`ชำระ${r.frequency.label} ${money(r.premium)} บาท/งวด · รวมต่อปี ${money(r.annualPaid)} บาท · ${mode==='premium'?'ทุนคำนวณตามเบี้ยที่กรอก':(fixed?'ใช้อัตรารายงวดจากภาพที่แนบ':smart?'ใช้อัตราตามช่วงทุนใน PDF':'ไม่มีส่วนลดอัตราเบี้ยรายปี')}`;
-  $('schedule-description').textContent=`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ทุน ${money(r.sum)} บาท · ชำระ${r.frequency.label}`;
-  $('schedule-body').innerHTML=r.schedule.map(row=>`<tr class="${[1,r.payYears].includes(row.policyYear)||row.age===99?'milestone':''}"><td><span class="age-number">${row.age}</span><span class="phase">${row.policyYear===1?'เริ่มคุ้มครอง':row.age===99?'ครบสัญญา':row.policyYear===r.payYears?'ปีสุดท้ายที่ชำระเบี้ย':'ปีกรมธรรม์'}</span></td><td>${row.pay?money(row.pay):'—'}</td>${r.health?`<td>${row.healthPremium===null?'—':row.healthPremium?money(row.healthPremium):'—'}</td>`:''}${r.daily?`<td>${row.dailyPremium?money(row.dailyPremium):'—'}</td>`:''}${r.care?`<td>${row.carePremium===null||!row.carePremium?'—':money(row.carePremium)}</td>`:''}${r.ci?`<td>${row.ciPremium===null?'—':money(row.ciPremium)}</td>`:''}${r.rider?`<td class="rider-premium-value">${row.riderPremium===null?'—':money(row.riderPremium)}</td>`:''}<td class="total-premium-value">${row.totalPremium===null?'—':money(row.totalPremium)}</td><td class="coverage-value">${row.coverage?money(row.coverage):'—'}</td><td class="pension-value">${row.maturity?money(row.maturity):'—'}</td></tr>`).join('');
-  $('row-count').textContent=`อายุ ${r.age}–99 ปี · ${r.schedule.length} แถว`;
+  renderSchedule(r);
   $('excel').disabled=false;$('pdf').disabled=false;$('print').disabled=false;summary.update();
  }catch(e){
   $('premium-cost').hidden=true;$('premium-all-view').replaceChildren();result=null;$('error').hidden=false;$('error').textContent=e.message;$('legacy-results').classList.add('invalid');
@@ -116,11 +116,23 @@ function render(){
   for(const id of ['excel','pdf','print'])$(id).disabled=true;summary.update();
  }
 }
+function renderSchedule(r){
+ const unit=scheduleUnit(r,scheduleDisplay),modal=scheduleDisplay==='modal';
+ $('schedule-title').textContent=modal?'เบี้ยและความคุ้มครองตามโหมดชำระ':'เบี้ยและความคุ้มครองรายปี';
+ for(const display of ['modal','annual'])$('schedule-view-'+display).setAttribute('aria-pressed',String(display===scheduleDisplay));
+ for(const [id,label] of [['schedule-main-heading','เบี้ยประกันชีวิต'],['health-premium-heading','เบี้ยประกันสุขภาพ'],['daily-premium-heading','เบี้ยค่าชดเชยรายวัน'],['care-premium-heading','เบี้ย Care Plus'],['ci-premium-heading','เบี้ยซีไอ'],['pa-premium-heading','เบี้ย PA'],['schedule-total-heading','เบี้ยประกันรวม']])$(id).innerHTML=label+'<br><small>บาท/'+unit+'</small>';
+ $('pa-table-note').textContent='ตารางแสดงเบี้ย'+(modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดต่อปี')+' โดยใช้อัตรา PA ตามอายุถึง 85 ปี หลังจากนั้นไม่นำ PA มารวมยอด — หมายถึงไม่มีอัตรา ไม่ใช่เบี้ยฟรี และไม่ใช่การยืนยันสิทธิต่ออายุ';
+ $('health-table-note').textContent=originalHealthTiming.replace('รวมทุกงวดต่อปี',modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดต่อปี');
+ $('schedule-footer-note').textContent=originalScheduleFooter.replace('รวมทุกงวดเฉพาะปีนั้น',modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดเฉพาะปีนั้น');
+  $('schedule-description').textContent=`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ทุน ${money(r.sum)} บาท · ชำระ${r.frequency.label}`;
+  $('schedule-body').innerHTML=r.schedule.map(original=>{const row=scheduleViewRow(r,original,scheduleDisplay);return `<tr class="${[1,r.payYears].includes(row.policyYear)||row.age===99?'milestone':''}"><td><span class="age-number">${row.age}</span><span class="phase">${row.policyYear===1?'เริ่มคุ้มครอง':row.age===99?'ครบสัญญา':row.policyYear===r.payYears?'ปีสุดท้ายที่ชำระเบี้ย':'ปีกรมธรรม์'}</span></td><td>${row.pay?money(row.pay):'—'}</td>${r.health?`<td>${row.healthPremium===null?'—':row.healthPremium?money(row.healthPremium):'—'}</td>`:''}${r.daily?`<td>${row.dailyPremium?money(row.dailyPremium):'—'}</td>`:''}${r.care?`<td>${row.carePremium===null||!row.carePremium?'—':money(row.carePremium)}</td>`:''}${r.ci?`<td>${row.ciPremium===null?'—':money(row.ciPremium)}</td>`:''}${r.rider?`<td class="rider-premium-value">${row.riderPremium===null?'—':money(row.riderPremium)}</td>`:''}<td class="total-premium-value">${row.totalPremium===null?'—':money(row.totalPremium)}</td><td class="coverage-value">${row.coverage?money(row.coverage):'—'}</td><td class="pension-value">${row.maturity?money(row.maturity):'—'}</td></tr>`;}).join('');
+  $('row-count').textContent=`อายุ ${r.age}–99 ปี · ${r.schedule.length} แถว`;
+}
 async function download(kind){
  render();if(!result)return;
  const r=result,button=$(kind),label=button.textContent;button.disabled=true;button.textContent='กำลังสร้างไฟล์…';
  try{
-  const blob=await(kind==='pdf'?createPDFReport(healthReportResult(r),mode):createExcelReport(healthReportResult(r),mode)),url=URL.createObjectURL(blob),a=document.createElement('a');
+  const blob=await(kind==='pdf'?createPDFReport(scheduleViewResult(healthReportResult(r),scheduleDisplay),mode):createExcelReport(healthReportResult(r),mode)),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=`TYINSURE_Health_age${r.age}.${kind==='pdf'?'pdf':'xlsx'}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(e){$('error').hidden=false;$('error').textContent=`ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง (${e.message})`;}
  finally{button.textContent=label;button.disabled=!result;}
@@ -129,6 +141,7 @@ try{
  const healthResponse=await fetch('./health-premiums.json');if(!healthResponse.ok)throw Error('โหลดเบี้ยสุขภาพไม่สำเร็จ');healthData=await healthResponse.json();
  const ciResponse=await fetch('./ci-perfect-care-rates.json');if(!ciResponse.ok)throw Error('โหลดเบี้ยซีไอไม่สำเร็จ');healthData.ci=await ciResponse.json();
  const response=await fetch('./health-rates.json');if(!response.ok)throw Error('โหลดอัตราเบี้ยไม่สำเร็จ');data=await response.json();
+ for(const display of ['modal','annual'])$('schedule-view-'+display).addEventListener('click',()=>{scheduleDisplay=display;if(result)renderSchedule(result);});
  for(const view of ['selected','all'])$('premium-view-'+view).addEventListener('click',()=>{premiumView=view;if(result)updatePremiumView(result);});
  for(const next of ['sum','premium'])$('mode-'+next).addEventListener('click',()=>{
   if($('main-plan').value==='wholelife50000'||next===mode)return;const previous=result;mode=next;

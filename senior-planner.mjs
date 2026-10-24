@@ -1,7 +1,8 @@
+import {scheduleUnit,scheduleViewRow} from './schedule-premium-view.mjs';
 import {SENIOR_SUMS,SENIOR_PA_PLANS,seniorDailyOptions,seniorPaymentViews,calculateSenior,seniorSummary,seniorMoney as money,seniorNotes} from './senior-calculator.mjs';
 import {createSeniorPDF,createSeniorExcel} from './senior-report.mjs';
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let data,dataSets={},result=null,sum=100000,view='selected';
+let data,dataSets={},result=null,sum=100000,view='selected',scheduleDisplay='annual';
 const picker=document.createElement('div');picker.className='field legacy-plan-picker';picker.innerHTML='<label for="legacy-product">เลือกสัญญาหลัก</label><select id="legacy-product" aria-describedby="legacy-product-hint"><option value="9920">สมาร์ท โพรเทคชัน 99/20 (ชำระ 20 ปี)</option><option value="senior">วัยเก๋าคุ้มได้ใจ · สบายใจ 99/10</option><option value="senior90">วัยเก๋าคุ้มสุขใจ · สบายใจ 90/90</option></select><small id="legacy-product-hint">ชำระเบี้ย 20 ปี คุ้มครองถึงอายุ 99 ปี · ต้องเลือก PA</small>';
 document.querySelector('#legacy-9920-content .mode-tabs').after(picker);
 const planner=document.createElement('section');planner.id='senior-planner';planner.hidden=true;
@@ -22,9 +23,10 @@ planner.innerHTML=`<div class="workspace">
 <div class="metrics"><article class="metric card"><p id="senior-paid-label">เบี้ยหลักรวม 10 ปี</p><strong id="senior-paid">—</strong><small>บาท · ไม่รวมสัญญาเพิ่มเติม</small></article><article class="metric card"><p id="senior-maturity-label">เงินครบสัญญา อายุ 99 ปี</p><strong id="senior-maturity">—</strong><small>บาท · ตามเงื่อนไขกรมธรรม์</small></article><article id="senior-tax-card" class="metric card"><p>ส่วนเบี้ยชีวิตสำหรับภาษี</p><strong id="senior-tax">—</strong><small>บาท/ปี · ตามเงื่อนไขภาษี</small></article></div>
 <section class="rider-cost card"><h3 id="senior-premium-title">เบี้ยรวมปีแรก • ชำระรายปี</h3><div class="premium-view-switch" role="group" aria-label="มุมมองเบี้ยวัยเก๋า"><button id="senior-view-selected" type="button" aria-pressed="true">เฉพาะงวดที่เลือก</button><button id="senior-view-all" type="button" aria-pressed="false">ทุกงวดชำระ</button></div><dl id="senior-cost" class="premium-breakdown"></dl><div id="senior-cost-all" class="premium-payment-table" hidden></div><p>เบี้ยสัญญาเพิ่มเติมปรับตามอายุ แยกจากเบี้ยสะสมของสัญญาหลัก</p></section>
 </section></div>
-<section class="schedule-section card"><div class="schedule-header"><div><p id="senior-schedule-plan" class="eyebrow">วัยเก๋าคุ้มได้ใจ · 99/10</p><h2>เบี้ยและความคุ้มครองรายปี</h2><p id="senior-schedule-description"></p></div><div class="export-actions"><button id="senior-excel" type="button" class="outline-button">ดาวน์โหลด Excel ↓</button><button id="senior-pdf" type="button" class="outline-button">ดาวน์โหลด PDF ↓</button></div></div>
+<section class="schedule-section card"><div class="schedule-header"><div><p id="senior-schedule-plan" class="eyebrow">วัยเก๋าคุ้มได้ใจ · 99/10</p><h2 id="senior-schedule-title">เบี้ยและความคุ้มครองรายปี</h2><p id="senior-schedule-description"></p></div><div class="export-actions"><button id="senior-excel" type="button" class="outline-button">ดาวน์โหลด Excel ↓</button><button id="senior-pdf" type="button" class="outline-button">ดาวน์โหลด PDF ↓</button></div></div>
+<div class="schedule-premium-switch" role="group" aria-label="มุมมองเบี้ยในตาราง"><button id="senior-schedule-view-modal" type="button" aria-pressed="false">แสดงเบี้ยตามโหมดชำระ</button><button id="senior-schedule-view-annual" type="button" aria-pressed="true">แสดงเบี้ยทั้งปี</button></div>
 <p id="senior-table-note" class="legacy-timing">* ผลประโยชน์เสียชีวิตเป็นขั้นต่ำที่คำนวณได้ ยังไม่รวมมูลค่าเวนคืน · เบี้ยสะสมแสดงเฉพาะสัญญาหลัก</p>
-<div class="table-scroll" tabindex="0" aria-label="ตารางเบี้ยรายปีวัยเก๋า"><table><thead><tr><th>อายุ / ปีกรมธรรม์</th><th>เบี้ยหลัก<br>(บาท/ปี)</th><th>เบี้ยสัญญาเพิ่มเติม<br>(บาท/ปี)</th><th>เบี้ยรวม<br>(บาท/ปี)</th><th>กรณีเสียชีวิต<br>(บาท)</th><th>กรณีเสียชีวิตจากอุบัติเหตุ<br>(บาท)</th><th>เงินครบสัญญา<br>(บาท)</th></tr></thead><tbody id="senior-schedule"></tbody></table></div></section>
+<div class="table-scroll" tabindex="0" aria-label="ตารางเบี้ยรายปีวัยเก๋า"><table><thead><tr><th>อายุ / ปีกรมธรรม์</th><th id="senior-main-heading">เบี้ยหลัก<br>(บาท/ปี)</th><th id="senior-riders-heading">เบี้ยสัญญาเพิ่มเติม<br>(บาท/ปี)</th><th id="senior-total-heading">เบี้ยรวม<br>(บาท/ปี)</th><th>กรณีเสียชีวิต<br>(บาท)</th><th>กรณีเสียชีวิตจากอุบัติเหตุ<br>(บาท)</th><th>เงินครบสัญญา<br>(บาท)</th></tr></thead><tbody id="senior-schedule"></tbody></table></div></section>
 <section class="card senior-notes"><h3>เงื่อนไขและหมายเหตุ</h3><ul id="senior-notes-list"></ul></section>
 <section class="customer-summary card"><div class="customer-summary-heading"><div><p class="eyebrow">พร้อมส่งให้ลูกค้า</p><h2>สรุปความคุ้มครองสำหรับ LINE</h2></div><button id="senior-copy" class="copy-summary-button" type="button">คัดลอกข้อความ</button></div><label class="summary-text-label" for="senior-summary">ข้อความสรุปสำหรับลูกค้า</label><textarea id="senior-summary" rows="16" spellcheck="false"></textarea><div class="customer-summary-bottom"><p id="senior-copy-status" role="status"></p><button id="senior-regenerate" type="button" class="text-button">สร้างข้อความใหม่จากผลคำนวณ</button></div></section>`;
 document.querySelector('#legacy-9920-content').before(planner);
@@ -62,14 +64,22 @@ function costs(r){
  const views=seniorPaymentViews(data,input());
  $('senior-cost-all').innerHTML='<table><caption>เบี้ยปีแรกสำหรับทุนและสัญญาเพิ่มเติมเดียวกัน (บาท/โหมดชำระ)</caption><thead><tr><th>รายการ</th><th>รายปี</th><th>รายเดือน</th></tr></thead><tbody>'+rows.map(([key,n])=>`<tr><th scope="row">${esc(n)}</th>${views.map(v=>`<td>${v[key]===null?'ยังไม่มีอัตรา':money(v[key])}</td>`).join('')}</tr>`).join('')+'</tbody></table>';
 }
+function renderSeniorSchedule(r){
+ const unit=scheduleUnit(r,scheduleDisplay),modal=scheduleDisplay==='modal';
+ $('senior-schedule-title').textContent=modal?'เบี้ยและความคุ้มครองตามโหมดชำระ':'เบี้ยและความคุ้มครองรายปี';
+ for(const display of ['modal','annual'])$('senior-schedule-view-'+display).setAttribute('aria-pressed',String(display===scheduleDisplay));
+ for(const [id,label] of [['senior-main-heading','เบี้ยหลัก'],['senior-riders-heading','เบี้ยสัญญาเพิ่มเติม'],['senior-total-heading','เบี้ยรวม']])$(id).innerHTML=label+'<br>(บาท/'+unit+')';
+ $('senior-table-note').textContent=(r.product==='senior90'?'ผลประโยชน์ตามสัญญาหลักและสัญญาเพิ่มเติมที่เลือก':'* ผลประโยชน์เสียชีวิตเป็นขั้นต่ำที่คำนวณได้ ยังไม่รวมมูลค่าเวนคืน')+' · ตารางเบี้ย'+(modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดต่อปี');
+  $('senior-schedule-description').textContent=`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ทุน ${money(r.sum)} บาท · ชำระ${r.frequencyLabel} · ${scheduleDisplay==='modal'?'ตารางเบี้ยต่องวดตามโหมดชำระ':'ตารางรวมทุกงวดในแต่ละปี'}`;
+  $('senior-schedule').innerHTML=r.schedule.map(original=>{const x=scheduleViewRow(r,original,scheduleDisplay);return `<tr class="${[1,r.payYears].includes(x.policyYear)||x.age===r.maturityAge?'milestone':''}"><td>${x.age}<small class="phase">${x.age===r.maturityAge?'ครบสัญญา':'ปีที่ '+x.policyYear}</small></td>${[x.pay,Math.round((x.paPay+x.dailyPay)*100)/100,x.total,x.illness,x.combinedAccident,x.maturity].map(n=>`<td>${n?money(n):'—'}</td>`).join('')}</tr>`;}).join('');
+}
 function render(){
  controls();if(!data)return;
  try{
   const r=calculateSenior(data,input());result=r;$('senior-error').hidden=true;
   $('senior-headline-label').textContent='เบี้ยสัญญาหลัก'+r.frequencyLabel;$('senior-headline-unit').textContent='บาท/'+r.unit;$('senior-premium').textContent=money(r.premium);$('senior-sum-value').textContent=money(r.sum)+' บาท';$('senior-paid').textContent=money(r.totalPaid);$('senior-maturity').textContent=money(r.maturity);$('senior-tax').textContent=r.taxLife===null?'—':money(r.taxLife);
   costs(r);
-  $('senior-schedule-description').textContent=`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ทุน ${money(r.sum)} บาท · ชำระ${r.frequencyLabel} · ตารางรวมทุกงวดในแต่ละปี`;
-  $('senior-schedule').innerHTML=r.schedule.map(x=>`<tr class="${[1,r.payYears].includes(x.policyYear)||x.age===r.maturityAge?'milestone':''}"><td>${x.age}<small class="phase">${x.age===r.maturityAge?'ครบสัญญา':'ปีที่ '+x.policyYear}</small></td>${[x.pay,Math.round((x.paPay+x.dailyPay)*100)/100,x.total,x.illness,x.combinedAccident,x.maturity].map(n=>`<td>${n?money(n):'—'}</td>`).join('')}</tr>`).join('');
+  renderSeniorSchedule(r);
   if(!dirty)$('senior-summary').value=seniorSummary(r);
   for(const id of ['senior-pdf','senior-excel','senior-copy','senior-regenerate'])$(id).disabled=false;
   if($('legacy-product').value!=='9920')$('print').disabled=false;
@@ -101,6 +111,7 @@ $('senior-age').addEventListener('input',render);
 for(const id of ['senior-frequency','senior-pa','senior-health'])$(id).addEventListener('change',render);
 $('senior-pa-plan').addEventListener('change',()=>{paPlan=Number($('senior-pa-plan').value);render();});
 document.querySelectorAll('input[name="senior-gender"]').forEach(el=>el.addEventListener('change',render));
+for(const display of ['modal','annual'])$('senior-schedule-view-'+display).addEventListener('click',()=>{scheduleDisplay=display;if(result)renderSeniorSchedule(result);});
 for(const v of ['selected','all'])$('senior-view-'+v).addEventListener('click',()=>{view=v;if(result)costs(result);});
 $('senior-summary').addEventListener('input',()=>{dirty=true;$('senior-copy-status').textContent='แก้ไขข้อความแล้ว ผลคำนวณยังอัปเดตตามข้อมูลที่เลือก';});
 $('senior-regenerate').addEventListener('click',()=>{dirty=false;render();$('senior-copy-status').textContent='สร้างข้อความใหม่แล้ว';});
@@ -108,7 +119,7 @@ $('senior-copy').addEventListener('click',async()=>{if(!result)return;try{await 
 $('print').addEventListener('click',e=>{if($('legacy-product').value==='9920')return;e.stopImmediatePropagation();render();if(result)window.print();},true);
 for(const kind of ['pdf','excel'])$('senior-'+kind).addEventListener('click',async()=>{
  render();if(!result)return;const r=result,button=$('senior-'+kind),label=button.textContent;button.disabled=true;button.textContent='กำลังสร้างไฟล์…';
- try{const blob=await(kind==='pdf'?createSeniorPDF(r):createSeniorExcel(r)),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`TYINSURE_Senior_${r.product==='senior90'?'90-90':'99-10'}_age${r.age}.${kind==='pdf'?'pdf':'xlsx'}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ try{const blob=await(kind==='pdf'?createSeniorPDF({...r,schedulePremiumDisplay:scheduleDisplay}):createSeniorExcel(r)),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`TYINSURE_Senior_${r.product==='senior90'?'90-90':'99-10'}_age${r.age}.${kind==='pdf'?'pdf':'xlsx'}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  catch(e){$('senior-error').hidden=false;$('senior-error').textContent='ดาวน์โหลดไม่สำเร็จ: '+e.message;}
  finally{button.textContent=label;button.disabled=!result;}
 });
