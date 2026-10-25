@@ -1,3 +1,5 @@
+import {EXTRA_PLANS,EXTRA_TERMS,extraBenefits} from './maochai-extra.mjs';
+import {convertibleAges,convertiblePlan,convertibleNotes} from './dhealth-convertible.mjs';
 import {OPD_PER_VISIT_BENEFITS,OPD_PER_VISIT_BENEFIT_TEXT,OPD_PER_VISIT_TERMS} from './opd-per-visit.mjs';
 import {OPD_BENEFITS,OPD_BENEFIT_TEXT,OPD_TERMS,opdSummary} from './opd-maochai.mjs';
 import {scheduleUnit,scheduleViewRow,scheduleViewResult} from './schedule-premium-view.mjs';
@@ -13,7 +15,7 @@ import {createPDFReport} from './health-pdf-export.mjs';
 import {premiumPaymentViews,premiumPaymentTable} from './premium-payment-views.mjs';
 const $=id=>document.getElementById(id),money=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const originalHealthTiming=$('health-table-note').textContent,originalScheduleFooter=$('schedule-footer-note').textContent;
-let healthData,data,mode='sum',result=null,dailyBenefit=500,premiumView='selected',scheduleDisplay='annual';
+let healthData,data,mode='sum',result=null,dailyBenefit=500,premiumView='selected',scheduleDisplay='annual',convertible=false;
 function updatePremiumView(r){
  const all=premiumView==='all';
  const unit={annual:'ปี',semiannual:'6เดือน',quarterly:'3เดือน',monthly:'เดือน'}[r.frequency.id];
@@ -24,8 +26,29 @@ function updatePremiumView(r){
  $('pa-cost-title').textContent=all?'เบี้ยรวมปีแรก • ทุกงวดชำระ':'เบี้ยรวมปีแรก • ชำระ'+r.frequency.label;
  $('premium-all-view').innerHTML=all?premiumPaymentTable(premiumPaymentViews(data,healthData,input(),r),r,r.frequency.id):'';
 }
-const input=()=>({mainPlan:$('main-plan').value,mainAtLeast30Days:$('main-infant').checked,age:$('age').value,gender:document.querySelector('input[name="gender"]:checked')?.value,amount:$('amount').value,frequency:$('frequency').value,mode,opdType:$('opd-type').value,opdBenefit:$('opd-benefit').value,healthProduct:$('health-product').value,healthBenefit:$('health-benefit').value,healthType:$('health-type').value,healthOption:$('health-option').value,healthPlan:$('health-plan').value,healthArea:$('health-area').value,dailyEnabled:$('daily-enabled').checked,dailyBenefit,careEnabled:$('care-enabled').checked,careBenefit:$('care-benefit').value,careCondition:$('care-condition').value,ciEnabled:$('ci-enabled').checked,ciSum:$('ci-sum').value,paEnabled:$('pa-enabled').checked,paPlan:$('pa-plan').value,paOccupation:'1',paHoliday:false,paAtLeast30Days:$('pa-infant').checked});
-const summary=mountCustomerSummary({getResult:()=>result,getInput:input,refresh:render,createSummary:r=>legacySummary(r)+[r.health,r.care].filter(Boolean).map(x=>`\n\n${x.label}\n${x.detail}\nกลุ่มอาชีพ 1–2\nเบี้ย${r.frequency.label} ${money(x.premium)} บาท/งวด\nเบี้ยปรับตามอายุ อัตราอายุ ${x.renewalAge}–98 ปีสำหรับต่ออายุเท่านั้น`).join('')+(r.opd?'\n\n'+opdSummary(r.opd,r.frequency):'')+(r.daily?'\n'+dailySummary(r.daily,r.frequency):'')+(r.ci?'\n'+ciSummary(r.ci,r.frequency):'')+((r.health||r.opd||r.daily||r.care||r.ci)?`\n\nเบี้ยหลักและสัญญาเพิ่มเติมที่เลือกทั้งหมด ${money(r.combinedFirstYearPremium)} บาท/งวด`:'' )});
+const input=()=>({mainPlan:$('main-plan').value,mainAtLeast30Days:$('main-infant').checked,age:$('age').value,gender:document.querySelector('input[name="gender"]:checked')?.value,amount:$('amount').value,frequency:$('frequency').value,mode,opdType:$('opd-type').value,opdBenefit:$('opd-benefit').value,healthProduct:$('health-product').value,healthConvertible:convertible,convertibleAge1:$('convertible-age-1').value,convertibleAge2:$('convertible-age-2').value,healthBenefit:$('health-benefit').value,healthType:$('health-type').value,healthOption:$('health-option').value,extraPlan:$('extra-plan').value,healthPlan:$('health-plan').value,healthArea:$('health-area').value,dailyEnabled:$('daily-enabled').checked,dailyBenefit,careEnabled:$('care-enabled').checked,careBenefit:$('care-benefit').value,careCondition:$('care-condition').value,ciEnabled:$('ci-enabled').checked,ciSum:$('ci-sum').value,paEnabled:$('pa-enabled').checked,paPlan:$('pa-plan').value,paOccupation:'1',paHoliday:false,paAtLeast30Days:$('pa-infant').checked});
+const summary=mountCustomerSummary({getResult:()=>result,getInput:input,refresh:render,createSummary:r=>legacySummary(r)+[r.health,r.care].filter(Boolean).map(x=>`\n\n${x.label}\n${x.detail}${x.convertibleNotes?.length?'\n'+x.convertibleNotes.join('\n'):''}\n${x.product==='maochai-extra'?x.terms.join('\n'):'กลุ่มอาชีพ 1–2'}\nเบี้ย${r.frequency.label} ${money(x.premium)} บาท/งวด\nเบี้ยปรับตามอายุ อัตราอายุ ${x.renewalAge}–98 ปีสำหรับต่ออายุเท่านั้น`).join('')+(r.opd?'\n\n'+opdSummary(r.opd,r.frequency):'')+(r.daily?'\n'+dailySummary(r.daily,r.frequency):'')+(r.ci?'\n'+ciSummary(r.ci,r.frequency):'')+((r.health||r.opd||r.daily||r.care||r.ci)?`\n\nเบี้ยหลักและสัญญาเพิ่มเติมที่เลือกทั้งหมด ${money(r.combinedFirstYearPremium)} บาท/งวด`:'' )});
+const convertibleAgeChoices={};
+function updateConvertibleControls(){
+ const age=Number($('age').value);
+ const allowed=$('health-product').value==='dhealth'&&$('health-type').value==='deductible'&&age<=60;
+ $('convertible-option-field').hidden=!allowed;
+ $('convertible-first-window').hidden=age>10;
+ if(!allowed)convertible=false;
+ $('convertible-use').disabled=!allowed;
+ $('convertible-controls').hidden=!allowed||!convertible;
+ $('convertible-hint').textContent=allowed?'เลือกอายุใช้สิทธิ์ช่วงละ 1 ครั้ง หลังถือ D Health Lite ต่อเนื่องอย่างน้อย 5 ปี':'ใช้ได้เฉพาะ Deductible ไม่ใช้กับ Copay หรือแบบไม่มี Deductible';
+ const ageKey=$('age').value;
+ for(const index of [0,1]){
+  const el=$('convertible-age-'+(index+1)),ages=convertibleAges(ageKey,index),selected=convertibleAgeChoices[index]??el.value;
+  el.innerHTML='<option value="">ไม่ใช้สิทธิ์ช่วงนี้</option>'+ages.map(age=>'<option value="'+age+'">'+age+' ปี</option>').join('');
+  el.value=Object.hasOwn(convertibleAgeChoices,index)&&selected===''?'':ages.includes(Number(selected))?selected:ages.length?String(ages[0]):'';
+  el.disabled=!convertible||!allowed||!ages.length;
+ }
+ const changes=convertiblePlan(input());
+ $('convertible-plan').textContent=convertible?convertibleNotes(changes)[0]??'ไม่มีการปรับ Deductible ในตารางตามอายุที่เลือก':'';
+ for(const [id,selected] of [['convertible-use',convertible],['convertible-no',!convertible]]){$(id).classList.toggle('active',selected);$(id).setAttribute('aria-pressed',String(selected));}
+}
 let opdLastType=null;const opdSelections={lump:15000,'per-visit':500};
 function updateOPDControls(){
  const type=$('opd-type').value,perVisit=type==='per-visit',enabled=!!type,options=perVisit?OPD_PER_VISIT_BENEFITS:OPD_BENEFITS;
@@ -65,14 +88,17 @@ function updateHealthControls(){
  $('ci-controls').hidden=!ciEnabled;$('ci-sum').disabled=!ciEnabled;$('ci-cost').hidden=!ciEnabled;$('ci-premium-heading').hidden=!ciEnabled;
  document.body.classList.toggle('has-ci-rider',ciEnabled);
  const product=$('health-product').value,enabled=!!product;
- document.body.classList.toggle('has-health-rider',enabled||$('care-enabled').checked);$('health-controls').hidden=!enabled;$('dhealth-controls').hidden=product!=='dhealth';$('elite-controls').hidden=product!=='elite';const careEnabled=$('care-enabled').checked;$('care-controls').hidden=!careEnabled;$('care-cost').hidden=!careEnabled;$('care-premium-heading').hidden=!careEnabled;
+ document.body.classList.toggle('has-health-rider',enabled||$('care-enabled').checked);$('health-controls').hidden=!enabled;$('dhealth-controls').hidden=product!=='dhealth';$('elite-controls').hidden=product!=='elite';$('extra-controls').hidden=product!=='maochai-extra';$('extra-plan').disabled=product!=='maochai-extra';
+ if(product==='maochai-extra'){const p=EXTRA_PLANS.find(p=>p.id===Number($('extra-plan').value));$('extra-benefits').innerHTML=p?'<p><strong>'+p.label+' บาท</strong></p>'+EXTRA_TERMS.map(t=>'<small>'+t+'</small>').join('')+'<details><summary>ความคุ้มครองเหมาจ่าย Extra</summary><dl>'+extraBenefits(p.id).map(([label,amount,note])=>'<div><dt>'+label+'</dt><dd>'+amount+'</dd>'+(note?'<small>'+note+'</small>':'')+'</div>').join('')+'</dl></details>':'';}else $('extra-benefits').replaceChildren();
+ const careEnabled=$('care-enabled').checked;$('care-controls').hidden=!careEnabled;$('care-cost').hidden=!careEnabled;$('care-premium-heading').hidden=!careEnabled;
  $('health-cost').hidden=!enabled;$('health-premium-heading').hidden=!enabled;$('health-table-note').hidden=!(enabled||careEnabled||ciEnabled);
- $('health-option-field').hidden=product!=='dhealth'||$('health-type').value==='none';
- $('health-option').disabled=$('health-type').value==='none';
+ $('health-option-field').hidden=product!=='dhealth';
+ $('health-option').disabled=product!=='dhealth';
  if(product==='dhealth'){
-  const options=healthOptions($('health-benefit').value,$('health-type').value),selected=$('health-option').value;
+  const options=['none','deductible','copay'].flatMap(type=>healthOptions($('health-benefit').value,type)),selected=$('health-option').value;
   $('health-option').innerHTML=options.map(o=>`<option value="${o.id}">${o.label}</option>`).join('');
   $('health-option').value=options.some(o=>o.id===selected)?selected:options[0].id;
+  $('health-type').value=$('health-option').value==='ded0'?'none':$('health-option').value.startsWith('copay')?'copay':'deductible';
  }
 
 }
@@ -98,6 +124,7 @@ function render(){
  }
  updateOPDControls();
  updateHealthControls();
+ updateConvertibleControls();
  updateRiderControls();
  const frequency=data.frequencies.find(f=>f.id===$('frequency').value);
  $('amount-label').innerHTML=mode==='sum'?'ทุนประกัน <span>บาท</span>':`เบี้ยประกัน${frequency.label} <span>บาท/งวด</span>`;
@@ -145,7 +172,7 @@ function renderSchedule(r){
  for(const [id,label] of [['schedule-main-heading','เบี้ยประกันชีวิต'],['health-premium-heading','เบี้ยประกันสุขภาพ'],['opd-premium-heading','เบี้ย OPD'],['daily-premium-heading','เบี้ยค่าชดเชยรายวัน'],['care-premium-heading','เบี้ย Care Plus'],['ci-premium-heading','เบี้ยซีไอ'],['pa-premium-heading','เบี้ย PA'],['schedule-total-heading','เบี้ยประกันรวม']])$(id).innerHTML=label+'<br><small>บาท/'+unit+'</small>';
  $('pa-table-note').textContent='ตารางแสดงเบี้ย'+(modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดต่อปี')+' โดยใช้อัตรา PA ตามอายุถึง 85 ปี หลังจากนั้นไม่นำ PA มารวมยอด — หมายถึงไม่มีอัตรา ไม่ใช่เบี้ยฟรี และไม่ใช่การยืนยันสิทธิต่ออายุ';
  $('health-table-note').textContent=originalHealthTiming.replace('รวมทุกงวดต่อปี',modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดต่อปี');
- $('schedule-footer-note').textContent=originalScheduleFooter.replace('รวมทุกงวดเฉพาะปีนั้น',modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดเฉพาะปีนั้น');
+ $('schedule-footer-note').textContent=originalScheduleFooter.replace('รวมทุกงวดเฉพาะปีนั้น',modal?'ต่องวดตามโหมดชำระที่เลือก':'รวมทุกงวดเฉพาะปีนั้น')+(r.health?.convertibleNotes?.length?'\n'+r.health.convertibleNotes.join('\n'):'');
   $('schedule-description').textContent=`${r.gender==='male'?'ชาย':'หญิง'} อายุเริ่ม ${r.age} ปี · ทุน ${money(r.sum)} บาท · ชำระ${r.frequency.label}`;
   $('schedule-body').innerHTML=r.schedule.map(original=>{const row=scheduleViewRow(r,original,scheduleDisplay);return `<tr class="${[1,r.payYears].includes(row.policyYear)||row.age===99?'milestone':''}"><td><span class="age-number">${row.age}</span><span class="phase">${row.policyYear===1?'เริ่มคุ้มครอง':row.age===99?'ครบสัญญา':row.policyYear===r.payYears?'ปีสุดท้ายที่ชำระเบี้ย':'ปีกรมธรรม์'}</span></td><td>${row.pay?money(row.pay):'—'}</td>${r.health?`<td>${row.healthPremium===null?'—':row.healthPremium?money(row.healthPremium):'—'}</td>`:''}${r.opd?`<td>${row.opdPremium===null?'—':row.opdPremium?money(row.opdPremium):'—'}</td>`:''}${r.daily?`<td>${row.dailyPremium?money(row.dailyPremium):'—'}</td>`:''}${r.care?`<td>${row.carePremium===null||!row.carePremium?'—':money(row.carePremium)}</td>`:''}${r.ci?`<td>${row.ciPremium===null?'—':money(row.ciPremium)}</td>`:''}${r.rider?`<td class="rider-premium-value">${row.riderPremium===null?'—':money(row.riderPremium)}</td>`:''}<td class="total-premium-value">${row.totalPremium===null?'—':money(row.totalPremium)}</td><td class="coverage-value">${row.coverage?money(row.coverage):'—'}</td><td class="pension-value">${row.maturity?money(row.maturity):'—'}</td></tr>`;}).join('');
   $('row-count').textContent=`อายุ ${r.age}–99 ปี · ${r.schedule.length} แถว`;
@@ -171,8 +198,9 @@ try{
   for(const m of ['sum','premium']){$('mode-'+m).classList.toggle('active',m===mode);$('mode-'+m).setAttribute('aria-selected',String(m===mode));}render();
  });
  for(const el of [$('age'),$('amount'),$('ci-sum')])el.addEventListener('input',render);
+ for(const [id,use] of [['convertible-use',true],['convertible-no',false]])$(id).addEventListener('click',()=>{convertible=use;render();});
  for(const benefit of [500,1000])$('daily-'+benefit).addEventListener('click',()=>{dailyBenefit=benefit;render();});
- for(const id of ['opd-type','opd-benefit','daily-enabled','ci-enabled','pa-enabled','pa-plan','pa-infant','health-product','health-benefit','health-type','health-option','health-plan','health-area','care-enabled','care-benefit','care-condition','main-infant'])$(id).addEventListener('change',()=>{if(id==='pa-enabled'&&$('pa-enabled').checked)$('pa-plan').value='2';if(id==='care-enabled'&&$('care-enabled').checked)$('care-benefit').value='5000000';if(id==='health-product'&&$('health-product').value==='dhealth')$('health-type').value='none';if(id==='health-product'&&$('health-product').value==='elite'){$('health-plan').value='1';$('health-area').value='0';}render();});
+ for(const id of ['opd-type','opd-benefit','daily-enabled','ci-enabled','pa-enabled','pa-plan','pa-infant','health-product','health-benefit','health-option','convertible-age-1','convertible-age-2','extra-plan','health-plan','health-area','care-enabled','care-benefit','care-condition','main-infant'])$(id).addEventListener('change',()=>{if(id==='convertible-age-1'||id==='convertible-age-2')convertibleAgeChoices[id==='convertible-age-1'?0:1]=$(id).value;if(id==='pa-enabled'&&$('pa-enabled').checked)$('pa-plan').value='2';if(id==='care-enabled'&&$('care-enabled').checked)$('care-benefit').value='5000000';if(id==='health-product'&&$('health-product').value==='dhealth'){$('health-type').value='none';$('health-option').value='ded0';}if(id==='health-product'&&$('health-product').value==='maochai-extra')$('extra-plan').value='1';if(id==='health-product'&&$('health-product').value==='elite'){$('health-plan').value='1';$('health-area').value='0';}render();});
  $('main-plan').addEventListener('change',()=>{if(mode==='sum'){if($('main-plan').value==='smart9920'&&Number($('amount').value)<200000)$('amount').value='200000';const value=Number($('amount').value);if($('main-plan').value==='smart9999-small'&&(value<50001||value>199999))$('amount').value='100000';if($('main-plan').value==='smart9999-large'&&(value<200000||value>=10000000))$('amount').value='200000';}render();});
  $('frequency').addEventListener('change',render);document.querySelectorAll('input[name="gender"]').forEach(el=>el.addEventListener('change',render));
  $('legacy-form').addEventListener('submit',e=>{e.preventDefault();render();});$('excel').addEventListener('click',()=>download('excel'));$('pdf').addEventListener('click',()=>download('pdf'));$('print').addEventListener('click',()=>{render();if(result)window.print();});

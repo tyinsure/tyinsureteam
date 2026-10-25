@@ -11,19 +11,20 @@
 <div class="field"><label for="age">อายุเริ่มทำประกัน <span>ปี</span></label><input id="age" type="number" min="0" max="70" step="1" value="35" inputmode="numeric" required><small id="main-age-hint">ตารางอัตราเบี้ยรองรับอายุ 0–70 ปี</small><label id="main-infant-label" class="rider-extra" hidden><input id="main-infant" type="checkbox"> ยืนยันว่าอายุอย่างน้อย 30 วัน</label></div>
 <div class="field"><label for="frequency">งวดชำระเบี้ย</label><select id="frequency"><option value="annual">รายปี</option><option value="semiannual">ราย 6 เดือน</option><option value="quarterly">ราย 3 เดือน</option><option value="monthly">รายเดือน</option></select><small>คำนวณด้วยอัตรารายงวดจากเอกสาร</small></div>
 <div class="field"><label for="amount" id="amount-label">ทุนประกัน <span>บาท</span></label><div class="amount-wrap"><input id="amount" type="number" min="0.01" step="0.01" value="1000000" inputmode="decimal" required><span>฿</span></div><small id="amount-hint">ระบุทุนประกันที่ต้องการส่งต่อ</small></div><fieldset class="rider-box health-selector"><legend>ประกันสุขภาพ</legend>
-<div class="field"><label for="health-product">เลือกประกันสุขภาพ</label><select id="health-product"><option value="">ไม่เลือกประกันสุขภาพ</option><option value="dhealth">D Health Lite</option><option value="elite">Elite Health Plus</option></select></div>
+<div class="field"><label for="health-product">เลือกประกันสุขภาพ</label><select id="health-product"><option value="">ไม่เลือกประกันสุขภาพ</option><option value="dhealth">D Health Lite</option><option value="elite">Elite Health Plus</option><option value="maochai-extra">เหมาจ่าย Extra</option></select></div>
 <div id="health-controls" hidden>
 <div id="dhealth-controls">
 <div class="field"><label for="health-benefit">วงเงินคุ้มครอง D Health Lite</label><select id="health-benefit"><option value="1000000">1,000,000 บาท</option><option value="5000000" selected>5,000,000 บาท</option></select></div>
-<div class="field"><label for="health-type">รูปแบบความรับผิดชอบ</label><select id="health-type"><option value="none" selected>ไม่มีความรับผิดชอบส่วนแรกและส่วนร่วมจ่าย</option><option value="deductible">ความรับผิดส่วนแรก</option><option value="copay">ส่วนร่วมจ่าย</option></select></div>
-<div class="field" id="health-option-field" hidden><label for="health-option">จำนวนความรับผิดส่วนแรก / ส่วนร่วมจ่าย</label><select id="health-option"></select></div>
+<input id="health-type" type="hidden" value="none">
+<div class="field" id="health-option-field"><label for="health-option">Deduct / Copay</label><select id="health-option"></select></div>
+<div class="field" id="convertible-option-field"><span id="convertible-label" class="convertible-label">Convertible Option</span><div class="daily-choices" role="group" aria-labelledby="convertible-label"><button id="convertible-use" type="button" aria-pressed="false">ใช้</button><button id="convertible-no" type="button" class="active" aria-pressed="true">ไม่ใช้</button></div><small id="convertible-hint">ใช้ได้เฉพาะ Deductible · ถือ D Health Lite ต่อเนื่องอย่างน้อย 5 ปี</small></div>
+<div id="convertible-controls" hidden><div class="field" id="convertible-first-window"><label for="convertible-age-1">อายุใช้สิทธิ์ช่วง 11–15 ปี</label><select id="convertible-age-1"></select></div><div class="field"><label for="convertible-age-2">อายุใช้สิทธิ์ช่วง 55–65 ปี</label><select id="convertible-age-2"></select></div><p id="convertible-plan" class="rider-description"></p><small class="rider-description">ช่วงละ 1 ครั้ง ไม่ต้องแถลงสุขภาพใหม่ · ตารางสมมติถือสัญญาต่อเนื่อง และใช้สิทธิ์ตามเงื่อนไขบริษัท</small></div>
 </div>
 <div id="elite-controls" hidden>
-<div class="field"><label for="health-plan">แผน Elite Health Plus</label><select id="health-plan"><option value="1" selected>แผน 1</option><option value="2">แผน 2</option><option value="3">แผน 3</option><option value="4">แผน 4</option></select></div>
+<div class="field"><label for="health-plan">แผน Elite Health Plus</label><select id="health-plan"><option value="1" selected>แผน 20ล้าน</option><option value="2">แผน 40ล้าน</option><option value="3">แผน 75ล้าน</option><option value="4">แผน 100ล้าน</option></select></div>
 <div class="field"><label for="health-area">พื้นที่ความคุ้มครอง</label><select id="health-area"><option value="0" selected>เฉพาะประเทศไทย</option><option value="1">ทวีปเอเชีย</option><option value="2">ทั่วโลกยกเว้นสหรัฐอเมริกา</option><option value="3">ทั่วโลก</option></select></div>
 </div>
-
-
+<div id="extra-controls" hidden><div class="field"><label for="extra-plan">แผนเหมาจ่าย Extra</label><select id="extra-plan"><option value="1" selected>ห้อง 2,000 ค่ารักษา 200,000</option><option value="2">ห้อง 4,000 ค่ารักษา 200,000</option><option value="3">ห้อง 4,000 ค่ารักษา 500,000</option></select></div><div id="extra-benefits" class="rider-benefits"></div></div>
 </div></fieldset>
 <fieldset class="rider-box opd-selector"><legend>OPD</legend>
 <div class="field"><label for="opd-type">เลือกความคุ้มครอง OPD</label><select id="opd-type" aria-describedby="opd-type-hint"><option value="">ไม่เลือก OPD</option><option value="lump">OPD เหมาจ่าย</option><option value="per-visit">OPD ต่อครั้ง</option></select><small id="opd-type-hint">เลือก OPD เหมาจ่าย หรือ OPD ต่อครั้ง</small></div>

@@ -1,3 +1,5 @@
+import {drawMaochaiExtra} from './maochai-extra-pdf.mjs';
+import {drawConvertibleSummary} from './convertible-pdf-summary.mjs';
 import {drawOPDBenefits} from './opd-pdf-summary.mjs';
 import {scheduleUnit} from './schedule-premium-view.mjs';
 import {LINE_CONTACT_TEXT,addLineContactLink} from './pdf-contact-link.mjs';
@@ -14,6 +16,8 @@ export function reportPageLayouts(r){
   const rows=r.schedule.slice(offset,offset+capacity);pages.push({first,top,rows});offset+=rows.length;
  }
  if(r.health?.product==='dhealth')pages.push({kind:'dhealth',first:false,top:100,rows:[]});
+ if(r.health?.product==='maochai-extra')pages.push({kind:'maochai-extra',first:false,top:100,rows:[]});
+ if(r.health?.convertibleChanges?.length)pages.push({kind:'convertible',first:false,top:100,rows:[]});
  if(r.health?.product==='elite')for(const kind of ['elite','elite-extra'])pages.push({kind,first:false,top:100,rows:[]});
  if(r.care||r.health?.product==='care')pages.push({kind:'care',first:false,top:100,rows:[]});
  if(r.opd)pages.push({kind:'opd',first:false,top:100,rows:[]});
@@ -61,6 +65,8 @@ function drawDailyBenefits(canvas,r,index,total,scale){
 }
 export function drawPDFPage(canvas,r,mode,layout,index,total,scale=3){
  if(['elite','elite-extra','care'].includes(layout.kind))return drawExtraHealthSummary(canvas,r,layout.kind,index,total,scale);
+ if(layout.kind==='maochai-extra')return drawMaochaiExtra(canvas,r,index,total,scale);
+ if(layout.kind==='convertible')return drawConvertibleSummary(canvas,r,index,total,scale);
  if(layout.kind==='dhealth')return drawDHealthBenefits(canvas,r,index,total,scale);
  if(layout.kind==='opd')return drawOPDBenefits(canvas,r,index,total,scale);
  if(layout.kind==='ci')return drawCIBenefits(canvas,r,index,total,scale);

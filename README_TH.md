@@ -1,14 +1,15 @@
-# TYINSURE — OPD เหมาจ่ายและ OPD ต่อครั้ง
+# TYINSURE - Health update 2026-10-25
 
-Source commit: d03395a60b74abceced3490f9abb410caf696ac2
-วันที่ 24 ตุลาคม 2026
+Source commit: b7ce368ab58c385d6de417ed0b3b84df2acd78d6
 
-เพิ่ม OPD เหมาจ่าย 6 แผน และ OPD ต่อครั้ง 7 แผน พร้อมเบี้ย 4 โหมดชำระ
-รวมเบี้ย ตารางรายปี/ตามโหมดชำระ LINE PDF และ Excel แล้ว
-รัน node run-tests.mjs ต้องผ่าน 35/35 ชุด
+Includes Maochai Extra (3 plans, 4 exact modal rate tables), D Health Lite
+combined Deduct / Copay selector and Convertible Option age selection,
+conditional controls, projected premiums and report notes; Elite dropdown
+labels now show coverage amounts. Existing OPD products remain included.
 
-สำหรับ Bigg: อัปโหลดไฟล์ชุดนี้ไปยัง tyinsure/tyinsureteam สาขา main
-คงเว็บไซต์ที่ root และ dist/ ให้ตรงกัน ตรวจไฟล์ด้วย UPLOAD_MANIFEST.json
-รักษาไฟล์อื่นและการตั้งค่าเดิม รวมถึง .github/ ไม่ต้องสั่ง deploy หรือเปลี่ยน GitHub Pages
-ไม่อัปโหลด .openai/ .git/ credentials หรือไฟล์ชั่วคราว
-เปิดเว็บไซต์ผ่าน static HTTP server ไม่มีขั้นตอนติดตั้ง dependency หรือ build
+Run: node run-tests.mjs (37/37 suites expected).
+Upload to tyinsure/tyinsureteam main, preserving unrelated files and .github/.
+Keep mirrored root and dist/ website files identical; verify UPLOAD_MANIFEST.json.
+Do not change GitHub Pages settings or trigger a deployment.
+Do not upload .openai/, .git/, credentials or temporary runtime files.
+Static website: no installation or build required; serve root or dist/ via HTTP.

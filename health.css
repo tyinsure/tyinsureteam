@@ -20,3 +20,5 @@ body.has-daily-rider .table-scroll table{min-width:1220px}body.has-daily-rider.h
 @media print{body.has-daily-rider .table-scroll table{min-width:0}}
 
 .opd-selector details{margin-top:12px}.opd-selector summary{cursor:pointer;color:#a13362}.opd-selector details small{display:block;margin:8px 0;line-height:1.9}body.has-opd-rider .table-scroll table{min-width:1280px}@media print{body.has-opd-rider .table-scroll table{min-width:0}}
+
+.convertible-label{display:block;font-size:13px;color:#775267;margin-bottom:8px}

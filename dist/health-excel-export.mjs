@@ -48,10 +48,12 @@ export function reportParts(template,r,mode){
   `สัญญาเพิ่มเติม ${r.rider.name} · กลุ่มอาชีพ ${r.rider.occupation}${r.rider.holiday?' · รวมเบี้ยเพิ่มวันหยุดนักขัตฤกษ์แล้ว':''}`,
   'ตารางเบี้ยเพิ่มเติม รวมเบี้ยทุกงวดต่อปีตามอายุและแผนที่เลือก รวมสุขภาพ Care Plus และ PA ที่เลือก (PA รวมถึงอายุ 85 ปี) อัตราต่ออายุสุขภาพใช้ตามหมายเหตุของแผน ไม่มีอัตราไม่ใช่เบี้ยฟรี',
   'เบี้ยและวงเงินเพิ่มเติม แยกจากเบี้ยสะสมและความคุ้มครองของสัญญาหลัก');
+ const extraNotes=r.health?.product==='maochai-extra'?[...r.health.terms,...r.health.benefits.map(([label,amount,note])=>label+': '+amount+(note?' · '+note:''))]:[];notes.push(...extraNotes);
+ const convertibleNotes=r.health?.convertibleNotes??[];notes.push(...convertibleNotes);
  const opdNotes=r.opd?[r.opd.label+' · '+r.opd.detail+' · เบี้ย '+r.opd.premium.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/งวด',r.opd.benefitText,...r.opd.terms]:[];notes.push(...opdNotes);
  if(r.ci)notes.push(r.ci.label+' · '+r.ci.detail+' · เบี้ย '+r.ci.premium.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/งวด',...r.ci.benefits.map(b=>b.label+' ('+b.pct*100+'%): '+b.amount.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท'),...CI_TERMS,CI_PROJECTION_NOTE);
  if(r.daily)notes.push(r.daily.label+' · '+r.daily.detail+' · เบี้ย '+r.daily.premium.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/งวด',...r.daily.benefits.map(b=>b.label+': '+b.amount.toLocaleString('th-TH',{minimumFractionDigits:2})+' บาท/วัน'),...DAILY_TERMS);
- notes.forEach((text,i)=>{const row=end+2+i;rows.push(`<x:row r="${row}" ht="${opdNotes.includes(text)?Math.max(25,Math.ceil([...text].length/90)*18):25}" customHeight="1">${cell('A'+row,text,2)}</x:row>`);});
+ notes.forEach((text,i)=>{const row=end+2+i;rows.push(`<x:row r="${row}" ht="${opdNotes.includes(text)||convertibleNotes.includes(text)||extraNotes.includes(text)?Math.max(25,Math.ceil([...text].length/90)*18):25}" customHeight="1">${cell('A'+row,text,2)}</x:row>`);});
  sheet=sheet.replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/,`<x:sheetData>${rows.join('')}</x:sheetData>`);
  if(legacy){const last=withRider?'F':'E';sheet=sheet.replace('</x:mergeCells>',Array.from({length:r.schedule.length+1},(_,i)=>`<x:mergeCell ref="${last}${10+i}:${lastCol}${10+i}" />`).join('')+'</x:mergeCells>');}
  sheet=sheet.replace('</x:mergeCells>',notes.map((_,i)=>`<x:mergeCell ref="A${end+2+i}:${lastCol}${end+2+i}" />`).join('')+'</x:mergeCells>');

@@ -103,12 +103,37 @@ try{
  assert.ok(nodes['health-selection'].textContent.includes('แผน 1 · เฉพาะประเทศไทย'));
  console.log('PASS: Elite defaults to plan 1 / Thailand when selected and custom options persist during other input changes');
  nodes['health-product'].value='dhealth';nodes['health-product'].events.change();
- assert.equal(nodes['health-type'].value,'none');assert.equal(nodes['health-option-field'].hidden,true);assert.equal(nodes['health-option'].disabled,true);assert.equal(nodes['health-option'].value,'ded0');
+ assert.equal(nodes['health-type'].value,'none');assert.equal(nodes['health-option-field'].hidden,false);assert.equal(nodes['health-option'].disabled,false);assert.equal(nodes['health-option'].value,'ded0');
  assert.ok(nodes['health-selection'].textContent.includes('ไม่มีความรับผิดชอบส่วนแรกและส่วนร่วมจ่าย'));
  const fullPremium=nodes['health-premium'].textContent;
- nodes['health-type'].value='deductible';nodes['health-type'].events.change();assert.equal(nodes['health-option-field'].hidden,false);assert.equal(nodes['health-option'].disabled,false);assert.equal(nodes['health-option'].value,'ded30000');assert.ok(!nodes['health-option'].innerHTML.includes('value="ded0"'));
- nodes['health-type'].value='copay';nodes['health-type'].events.change();assert.equal(nodes['health-option'].value,'copay20');
- nodes['health-type'].value='none';nodes['health-type'].events.change();assert.equal(nodes['health-option-field'].hidden,true);assert.equal(nodes['health-premium'].textContent,fullPremium);
- console.log('PASS: D Health default none, hidden option input, nonzero deductibles, copay selection and restored ded0 premium');
+ const {healthQuote,healthOptions}=await import('./dist/health-rider.mjs');
+ for(const benefit of ['1000000','5000000']){
+  nodes['health-benefit'].value=benefit;nodes['health-benefit'].events.change();
+  for(const type of ['none','deductible','copay'])for(const option of healthOptions(benefit,type)){
+   assert.ok(nodes['health-option'].innerHTML.includes('value="'+option.id+'"'));
+   nodes['health-option'].value=option.id;nodes['health-option'].events.change();assert.equal(nodes['health-type'].value,type);assert.equal(nodes.pdf.disabled,false);
+   const expected=healthQuote(healthData,{healthProduct:'dhealth',healthBenefit:benefit,healthType:type,healthOption:option.id,age:35,gender:'male',frequency:nodes.frequency.value});
+   assert.ok(nodes['health-premium'].textContent.includes(expected.premium.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})));
+   const before=nodes['health-premium'].textContent,table=nodes['schedule-body'].innerHTML;
+   assert.equal(nodes['convertible-use'].disabled,type!=='deductible');assert.equal(nodes['convertible-option-field'].hidden,type!=='deductible');
+   nodes['convertible-use'].events.click();assert.equal(nodes['health-premium'].textContent,before);
+   if(type==='deductible'){assert.notEqual(nodes['schedule-body'].innerHTML,table);assert.equal(nodes['convertible-controls'].hidden,false);assert.ok(nodes['customer-summary-text'].value.includes('Convertible Option'));}else assert.equal(nodes['schedule-body'].innerHTML,table);
+   nodes.frequency.events.change();assert.equal(nodes['health-option'].value,option.id);
+   nodes['convertible-no'].events.click();assert.equal(nodes['health-premium'].textContent,before);assert.equal(nodes['schedule-body'].innerHTML,table);
+  }
+ }
+ nodes['health-option'].value='ded100000';nodes['health-option'].events.change();nodes['health-benefit'].value='1000000';nodes['health-benefit'].events.change();assert.equal(nodes['health-option'].value,'ded0');assert.equal(nodes['health-type'].value,'none');assert.ok(!nodes['health-option'].innerHTML.includes('ded100000'));
+ nodes['health-benefit'].value='5000000';nodes['health-benefit'].events.change();nodes['health-option'].value='ded0';nodes['health-option'].events.change();assert.equal(nodes['health-premium'].textContent,fullPremium);
+ console.log('PASS: unified Deduct / Copay covers both limits, Convertible only enables deductibles, preserves first premium, adjusts future rows, and disabling restores original schedule');
+ nodes.age.value='6';nodes.age.events.input();nodes['health-option'].value='ded100000';nodes['health-option'].events.change();nodes['convertible-use'].events.click();
+ nodes['convertible-age-1'].value='14';nodes['convertible-age-1'].events.change();nodes['convertible-age-2'].value='64';nodes['convertible-age-2'].events.change();
+ assert.ok(nodes['customer-summary-text'].value.includes('อายุ 14 ปี'));assert.ok(nodes['customer-summary-text'].value.includes('อายุ 64 ปี'));nodes.frequency.events.change();assert.equal(nodes['convertible-age-1'].value,'14');assert.equal(nodes['convertible-age-2'].value,'64');
+ nodes['convertible-age-1'].value='';nodes['convertible-age-1'].events.change();nodes.frequency.events.change();assert.equal(nodes['convertible-age-1'].value,'');assert.ok(!nodes['convertible-plan'].textContent.includes('อายุ 14 ปี'));
+ nodes.age.value='10';nodes.age.events.input();assert.equal(nodes['convertible-first-window'].hidden,false);assert.ok(nodes['convertible-age-1'].innerHTML.includes('value="15"'));
+ nodes.age.value='11';nodes.age.events.input();assert.equal(nodes['convertible-first-window'].hidden,true);assert.equal(nodes['convertible-age-1'].value,'');assert.equal(nodes['convertible-option-field'].hidden,false);
+ nodes.age.value='60';nodes.age.events.input();assert.equal(nodes['convertible-option-field'].hidden,false);assert.equal(nodes['convertible-controls'].hidden,false);assert.equal(nodes['convertible-age-2'].value,'65');assert.ok(nodes['customer-summary-text'].value.includes('อายุ 65 ปี'));
+ nodes.age.value='61';nodes.age.events.input();assert.equal(nodes['convertible-option-field'].hidden,true);assert.equal(nodes['convertible-controls'].hidden,true);assert.equal(nodes['convertible-age-2'].disabled,true);assert.equal(nodes['convertible-age-2'].value,'');assert.equal(nodes.pdf.disabled,false);assert.ok(!nodes['customer-summary-text'].value.includes('Convertible Option'));
+ nodes.age.value='60';nodes.age.events.input();assert.equal(nodes['convertible-option-field'].hidden,false);assert.equal(nodes['convertible-controls'].hidden,true);nodes['convertible-use'].events.click();assert.equal(nodes['convertible-controls'].hidden,false);assert.equal(nodes['convertible-age-2'].value,'65');
+ nodes['health-option'].value='copay10';nodes['health-option'].events.change();assert.equal(nodes['convertible-use'].disabled,true);assert.equal(nodes['convertible-controls'].hidden,true);assert.ok(!nodes['customer-summary-text'].value.includes('Convertible Option'));
  console.log('PASS: initial state, checkbox selection, fixed occupation 1, annual quote/summary/column, invalid-age handling, complete rider removal');
 }finally{globalThis.document=oldDocument;globalThis.fetch=oldFetch;}
